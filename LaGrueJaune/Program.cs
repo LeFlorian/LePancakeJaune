@@ -102,6 +102,7 @@ namespace LaGrueJaune
             #endregion
 
             await Client.ConnectAsync();
+
             UpdateColorRole();
 
             await Task.Delay(-1);

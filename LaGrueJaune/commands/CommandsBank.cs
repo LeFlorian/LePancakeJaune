@@ -5,9 +5,7 @@ using DSharpPlus.Entities;
 using LaGrueJaune.config;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Threading.Tasks;
 
 namespace LaGrueJaune.commands
@@ -22,6 +20,7 @@ namespace LaGrueJaune.commands
         }
 
         [Command("SetUserPurge")]
+        [RequireUserPermissions(Permissions.Administrator)]
         public async Task SetUserToPurge(CommandContext ctx)
         {
             ctx.Message.DeleteAsync();

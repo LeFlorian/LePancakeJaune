@@ -14,6 +14,13 @@ namespace LaGrueJaune.commands
 {
     public class SlashCommandsBank : ApplicationCommandModule
     {
+        [SlashCommand("test", "Command to test if the bot is working.")]
+        [SlashRequireUserPermissions(Permissions.Administrator)]
+        public async Task Test(InteractionContext ctx)
+        {
+            await ctx.CreateResponseAsync(new DiscordEmbedBuilder().WithDescription($"You are <@{ctx.User.Id}> !"));
+        }
+
         public class Debug : ApplicationCommandModule
         {
             [SlashCommand("Template", "Command template: Do nothing.")]
