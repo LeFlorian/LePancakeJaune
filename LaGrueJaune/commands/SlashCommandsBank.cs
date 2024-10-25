@@ -60,13 +60,16 @@ namespace LaGrueJaune.commands
 
         [SlashCommand("SetUserKickable", "Set a user in purge list to be kickable or not.")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
-        public async Task SetUserKickable(InteractionContext ctx, int IDinList, bool kickable)
+        public async Task SetUserKickable(
+            InteractionContext ctx,
+            [Option("ID","The ID of the user in the purge list.")] long IDinList, 
+            [Option("Kickable", "If the user is kickable")] bool kickable)
         {
 
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
 
 
-            Program.userToPurge.History.ElementAt(IDinList - 1).Value.isKickable = kickable;
+            Program.userToPurge.History.ElementAt((int)IDinList - 1).Value.isKickable = kickable;
             await Program.actualPurgeMessage.ModifyAsync(await Program.GetPurgeMessage(Program.purgeListPageIndex));
 
             await ctx.DeleteResponseAsync();
@@ -74,22 +77,26 @@ namespace LaGrueJaune.commands
 
         [SlashCommand("ViewReason", "View the reason for the user to be in the purge list")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
-        public async Task ViewReason(InteractionContext ctx, int IDinList)
+        public async Task ViewReason(
+            InteractionContext ctx, 
+            [Option("ID", "The ID of the user in the purge list.")] long IDinList)
         {
 
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
 
 
-            var historyUser = Program.userToPurge.History.ElementAt(IDinList - 1);
+            var historyUser = Program.userToPurge.History.ElementAt((int)IDinList - 1);
 
             await ctx.Channel.SendMessageAsync($"<@{historyUser.Key}> est dans la liste des kick pour la raison suivante:\n{historyUser.Value.kickReason}");
 
             await ctx.DeleteResponseAsync();
         }
 
-        [SlashCommand("ViewReason", "View the reason for the user to be in the purge list")]
+        [SlashCommand("ViewReasonMember", "View the reason for the user to be in the purge list")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
-        public async Task ViewReason(InteractionContext ctx, DiscordMember member)
+        public async Task ViewReasonMember(
+            InteractionContext ctx, 
+            [Option("Member","Member in the purge list.")] DiscordUser member)
         {
 
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
@@ -163,7 +170,9 @@ namespace LaGrueJaune.commands
 
         [SlashCommand("AddHistory", "Add user in the history.")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
-        public async Task AddHistory(InteractionContext ctx, string messageUrl)
+        public async Task AddHistory(
+            InteractionContext ctx, 
+            [Option("MessageURL","The last message of the user.")] string messageUrl)
         {
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
 
@@ -197,7 +206,9 @@ namespace LaGrueJaune.commands
 
         [SlashCommand("ah", "Add user in the history.")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
-        public async Task AH(InteractionContext ctx, string messageUrl)
+        public async Task AH(
+            InteractionContext ctx,
+            [Option("MessageURL", "The last message of the user.")] string messageUrl)
         {
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
             await AddHistory(ctx, messageUrl);
@@ -207,9 +218,13 @@ namespace LaGrueJaune.commands
 
         [SlashCommand("ForceAddHistory", "Add user in the history using it's name and the date.")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
-        public async Task ForceAddHistory(InteractionContext ctx, DiscordMember user, DateTime date)
+        public async Task ForceAddHistory(InteractionContext ctx, 
+            [Option("Member","Member to force add in the history.")] DiscordUser user, 
+            [Option("Date","Date of the force adding (write jj/mm/aaaa)")] string dates)
         {
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+
+            DateTime date = DateTime.Parse(dates);
 
             JSONHistory.Description desc = new JSONHistory.Description()
             {
@@ -227,12 +242,13 @@ namespace LaGrueJaune.commands
 
         [SlashCommand("fah", "Add user in the history using it's name and the date.")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
-        public async Task FAH(InteractionContext ctx, DiscordMember user, string dates)
+        public async Task FAH(InteractionContext ctx, 
+            [Option("Member", "Member to force add in the history.")] DiscordUser user,
+            [Option("Date", "Date of the force adding (write jj/mm/aaaa)")] string dates)
         {
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
-            DateTime date = DateTime.Parse(dates);
 
-            await ForceAddHistory(ctx, user, date);
+            await ForceAddHistory(ctx, user, dates);
 
             await ctx.DeleteResponseAsync();
         }
@@ -267,16 +283,20 @@ namespace LaGrueJaune.commands
 
         [SlashCommand("Ban", "Ban a user and send the reason in DM.")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
-        public async Task Ban(InteractionContext ctx, DiscordMember user, string reason = "")
+        public async Task Ban(InteractionContext ctx, [Option("User", "User to ban.")] DiscordUser user, [Option("Reason","The reason for the ban.")] string reason = "")
         {
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
 
             // Envoyer un message privé à l'utilisateur
-            var dmChannel = await user.CreateDmChannelAsync();
+            DiscordMember member = await Program.Guild.GetMemberAsync(user.Id);
+
+            var dmChannel = await member.CreateDmChannelAsync();
             await dmChannel.SendMessageAsync($"Tu a été banni de la grue jaune pour la raison suivante:\n {reason}");
 
-            await user.BanAsync(0, reason);
-            await ctx.Channel.SendMessageAsync($"{user.Nickname} a été banni pour la raison suivante:\n{reason}");
+            string stashedNickname = member.Nickname;
+
+            await member.BanAsync(0, reason);
+            await ctx.Channel.SendMessageAsync($"{stashedNickname} a été banni pour la raison suivante:\n{reason}");
 
             await ctx.DeleteResponseAsync();
         }
