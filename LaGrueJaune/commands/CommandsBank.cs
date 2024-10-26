@@ -2,13 +2,20 @@
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
+using LibreTranslate;
 using LaGrueJaune.config;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using System.Net.Http;
+using static LaGrueJaune.commands.CommandsBank;
+using LibreTranslate.Net;
+using IronPython.Hosting;
+using Microsoft.Scripting.Hosting;
 
 namespace LaGrueJaune.commands
 {
@@ -271,6 +278,58 @@ namespace LaGrueJaune.commands
             }
 
             await ctx.Channel.SendMessageAsync($"{commands}");
+        }
+
+        [Command("note")]
+        [RequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task addNote(CommandContext ctx, ulong memberId, params string[] text)
+        {
+            string phrase = "";
+            foreach (string word in text)
+            {
+                phrase += $"{word} ";
+            }
+
+            await Program.notesParser.AddNotes(memberId, $"{phrase.Remove(phrase.Length - 1)} - {DateTime.Now.ToString()}");
+            int nbNotes = Program.notesParser.json.Notes[memberId].listeNotes.Keys.Max();
+            string total;
+            if (nbNotes.Equals(1)) {
+                total = "Cette personne a 1 note à son actif.";
+               }
+            else
+            {
+                total = $"Cette personne a {nbNotes.ToString()} notes à son actif.";
+            }
+            await ctx.Channel.SendMessageAsync($"La note sur l'utilisateur <@{memberId.ToString()}> a bien été ajoutée.");
+        }
+
+        [Command("noteList")]
+        [RequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task getNotes(CommandContext ctx, ulong memberId)
+        {
+            string notesTxt = "";
+            foreach (KeyValuePair<int, String>  note in Program.notesParser.json.Notes[memberId].listeNotes){
+                notesTxt += $"\n{note.Key.ToString()}: {note.Value.ToString()}";
+            }
+            await ctx.Channel.SendMessageAsync($"Listes des notes sur l'utilisateur <@{memberId.ToString()}>:{notesTxt}");
+        }
+
+        [Command("noteClear")]
+        [RequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task getNotes(CommandContext ctx, ulong memberId, int index)
+        {
+            Program.notesParser.json.Notes[memberId].listeNotes.Remove(index);
+            await Program.notesParser.WriteJSON();
+            await ctx.Channel.SendMessageAsync($"Note correctement supprimée.");
+        }
+
+        [Command("noteClear")]
+        [RequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task getNotes(CommandContext ctx, ulong memberId, string arg = "all")
+        {
+            Program.notesParser.json.Notes.Remove(memberId);
+            await Program.notesParser.WriteJSON();
+            await ctx.Channel.SendMessageAsync($"Toutes les notes de la personne ont été supprimées.");
         }
     }
 }

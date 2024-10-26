@@ -24,6 +24,7 @@ namespace LaGrueJaune
         public static JSONConfig config;
 
         public static JSONHistoryParser historyParser;
+        public static JSONNotesParser notesParser;
         public static JSONHistory userToPurge;
 
         public static int purgeListPageIndex = 1;
@@ -44,6 +45,8 @@ namespace LaGrueJaune
 
             historyParser = new JSONHistoryParser();
             await historyParser.ReadJSON();
+            notesParser = new JSONNotesParser();
+            await notesParser.ReadJSON();
             #endregion
 
             #region Client setup
@@ -102,12 +105,13 @@ namespace LaGrueJaune
             #endregion
 
             await Client.ConnectAsync();
-            UpdateColorRole();
+            //UpdateColorRole();
 
             await Task.Delay(-1);
         }
 
         private static float time = 0;
+        /*
         private static async Task UpdateColorRole()
         {
             Random rand = new Random();
@@ -128,6 +132,7 @@ namespace LaGrueJaune
                 }
             }
         }
+        */
 
         #region Events
         private static Task Client_Ready(DiscordClient sender, ReadyEventArgs args)
@@ -489,7 +494,8 @@ namespace LaGrueJaune
                 userToPurge.History.Add(id, desc);
             }
         }
-
+        
+        /*
         private static async Task UpdateFloColor()
         {
 
@@ -515,6 +521,7 @@ namespace LaGrueJaune
                 return color;
             }
         }
+        */
         #endregion
     }
 }
