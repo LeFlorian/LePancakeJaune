@@ -283,6 +283,11 @@ namespace LaGrueJaune.commands
         [RequireUserPermissions(Permissions.ModerateMembers)]
         public async Task addNote(CommandContext ctx, ulong memberId, params string[] text)
         {
+            if (ctx.Guild == null)
+            {
+                return;
+            }
+
             string phrase = "";
             foreach (string word in text)
             {
@@ -303,17 +308,35 @@ namespace LaGrueJaune.commands
         [RequireUserPermissions(Permissions.ModerateMembers)]
         public async Task getNotes(CommandContext ctx, ulong memberId)
         {
-            string notesTxt = "";
-            foreach (KeyValuePair<int, String>  note in Program.notesParser.json.Notes[memberId].listeNotes){
-                notesTxt += $"\n{note.Key.ToString()}: {note.Value.ToString()}";
+            if (ctx.Guild == null)
+            {
+                return;
             }
-            await ctx.RespondAsync($"Listes des notes sur l'utilisateur <@{memberId.ToString()}>:{notesTxt}");
+
+            string notesTxt = "";
+            if (Program.notesParser.json.Notes.Keys.Contains(memberId))
+            {
+                foreach (KeyValuePair<int, String> note in Program.notesParser.json.Notes[memberId].listeNotes)
+                {
+                    notesTxt += $"\n{note.Key.ToString()}: {note.Value.ToString()}";
+                }
+            }
+            else
+            {
+                notesTxt = "\n:person_shrugging:";
+            }
+            await ctx.RespondAsync($"Liste des notes sur l'utilisateur <@{memberId.ToString()}>:{notesTxt}");
         }
 
         [Command("noteClear")]
         [RequireUserPermissions(Permissions.ModerateMembers)]
         public async Task getNotes(CommandContext ctx, ulong memberId, int index)
         {
+            if (ctx.Guild == null)
+            {
+                return;
+            }
+
             if (index != null)
             {
                 Program.notesParser.json.Notes[memberId].listeNotes.Remove(index);
@@ -327,7 +350,12 @@ namespace LaGrueJaune.commands
         [RequireUserPermissions(Permissions.ModerateMembers)]
         public async Task getNotes(CommandContext ctx, ulong memberId, string arg)
         {
-            if (!arg.Equals("all"))
+            if (ctx.Guild == null)
+            {
+                return;
+            }
+
+            if (arg.Equals("all"))
             {
                 Program.notesParser.json.Notes.Remove(memberId);
                 await Program.notesParser.WriteJSON();
@@ -339,6 +367,11 @@ namespace LaGrueJaune.commands
         [RequireUserPermissions(Permissions.ModerateMembers)]
         public async Task convClear(CommandContext ctx, DiscordThreadChannel thread)
         {
+            if (ctx.Guild == null)
+            {
+                return;
+            }
+
             //DiscordThreadChannel thread = ctx.Channel.Threads.Where(t => t.Id.Equals(threadId)).FirstOrDefault();
             if (thread != null)
             {
@@ -362,6 +395,11 @@ namespace LaGrueJaune.commands
         [RequireUserPermissions(Permissions.ModerateMembers)]
         public async Task convIgnore(CommandContext ctx, DiscordThreadChannel thread)
         {
+            if (ctx.Guild == null)
+            {
+                return;
+            }
+
             // On met à jour le fichier JSON
             var conv = Program.conversationParser.json.Conversations.Where(c => c.Value.threadId == thread.Id).FirstOrDefault();
             conv.Value.statut = "ignoré";
@@ -374,6 +412,11 @@ namespace LaGrueJaune.commands
         [RequireUserPermissions(Permissions.ModerateMembers)]
         public async Task convIgnoreAnnule(CommandContext ctx, string arg)
         {
+            if (ctx.Guild == null)
+            {
+                return;
+            }
+
             if (arg.Equals("clear"))
             {
                 // On réinitialise les statuts du fichier JSON

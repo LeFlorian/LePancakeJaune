@@ -54,6 +54,7 @@ namespace LaGrueJaune.config
             // On vérifie si le membre est à ignorer
             if (json.Conversations.Keys.Contains(anonymId) &&  "ignoré".Equals(json.Conversations[anonymId].statut))
             {
+                await dm.CreateReactionAsync(DiscordEmoji.FromName(client, ":x:"));
                 return;
             }
 
