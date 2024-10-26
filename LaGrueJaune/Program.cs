@@ -105,19 +105,26 @@ namespace LaGrueJaune
             #endregion
 
             await Client.ConnectAsync();
-            //UpdateColorRole();
+            
+            UpdateColorRole();
 
             await Task.Delay(-1);
         }
 
         private static float time = 0;
-        /*
+        private static bool killUpdateColorLoop = false;
         private static async Task UpdateColorRole()
         {
+            killUpdateColorLoop = true;
+            //Kill the precedent loop
+            await Task.Delay(60100);
+            killUpdateColorLoop = false;
+
+
             Random rand = new Random();
             time = DateTime.Now.Millisecond;
 
-            while (true)
+            while (true && !killUpdateColorLoop)
             {
                 time += 0.1f;
 
@@ -132,12 +139,13 @@ namespace LaGrueJaune
                 }
             }
         }
-        */
+        
 
         #region Events
         private static Task Client_Ready(DiscordClient sender, ReadyEventArgs args)
         {
             UpdateDescription();
+            UpdateColorRole();
             return Task.CompletedTask;
         }
 
@@ -495,7 +503,7 @@ namespace LaGrueJaune
             }
         }
         
-        /*
+        
         private static async Task UpdateFloColor()
         {
 
@@ -521,7 +529,7 @@ namespace LaGrueJaune
                 return color;
             }
         }
-        */
+        
         #endregion
     }
 }
