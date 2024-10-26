@@ -92,6 +92,9 @@
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="RandomNameGeneratorLibrary, Version=1.2.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RandomNameGeneratorLibrary.1.2.2.0\lib\net40\RandomNameGeneratorLibrary.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.AppContext, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.AppContext.4.3.0\lib\net463\System.AppContext.dll</HintPath>
@@ -258,6 +261,7 @@
     <Compile Include="commands\SlashCommandsBank.cs" />
     <Compile Include="commands\CommandsBank.cs" />
     <Compile Include="JSON\config\JSONConfigReader.cs" />
+    <Compile Include="JSON\data\JSONConversationParser.cs" />
     <Compile Include="JSON\data\JSONNotesParser.cs" />
     <Compile Include="JSON\data\JSONHistoryParser.cs" />
     <Compile Include="Program.cs" />

@@ -290,16 +290,13 @@ namespace LaGrueJaune.commands
             }
 
             await Program.notesParser.AddNotes(memberId, $"{phrase.Remove(phrase.Length - 1)} - {DateTime.Now.ToString()}");
-            int nbNotes = Program.notesParser.json.Notes[memberId].listeNotes.Keys.Max();
-            string total;
-            if (nbNotes.Equals(1)) {
-                total = "Cette personne a 1 note à son actif.";
-               }
-            else
-            {
-                total = $"Cette personne a {nbNotes.ToString()} notes à son actif.";
+            int nbNotes = Program.notesParser.json.Notes[memberId].listeNotes.Count;
+            
+            await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
+            if (!nbNotes.Equals(1)) {
+                string total = $"Cette personne a maintenant {nbNotes.ToString()} notes à son actif.";
+                await ctx.RespondAsync(total);
             }
-            await ctx.Channel.SendMessageAsync($"La note sur l'utilisateur <@{memberId.ToString()}> a bien été ajoutée.");
         }
 
         [Command("noteList")]
@@ -310,25 +307,84 @@ namespace LaGrueJaune.commands
             foreach (KeyValuePair<int, String>  note in Program.notesParser.json.Notes[memberId].listeNotes){
                 notesTxt += $"\n{note.Key.ToString()}: {note.Value.ToString()}";
             }
-            await ctx.Channel.SendMessageAsync($"Listes des notes sur l'utilisateur <@{memberId.ToString()}>:{notesTxt}");
+            await ctx.RespondAsync($"Listes des notes sur l'utilisateur <@{memberId.ToString()}>:{notesTxt}");
         }
 
         [Command("noteClear")]
         [RequireUserPermissions(Permissions.ModerateMembers)]
         public async Task getNotes(CommandContext ctx, ulong memberId, int index)
         {
-            Program.notesParser.json.Notes[memberId].listeNotes.Remove(index);
-            await Program.notesParser.WriteJSON();
-            await ctx.Channel.SendMessageAsync($"Note correctement supprimée.");
+            if (index != null)
+            {
+                Program.notesParser.json.Notes[memberId].listeNotes.Remove(index);
+                await Program.notesParser.WriteJSON();
+                await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
+            }
+
         }
 
         [Command("noteClear")]
         [RequireUserPermissions(Permissions.ModerateMembers)]
-        public async Task getNotes(CommandContext ctx, ulong memberId, string arg = "all")
+        public async Task getNotes(CommandContext ctx, ulong memberId, string arg)
         {
-            Program.notesParser.json.Notes.Remove(memberId);
-            await Program.notesParser.WriteJSON();
-            await ctx.Channel.SendMessageAsync($"Toutes les notes de la personne ont été supprimées.");
+            if (!arg.Equals("all"))
+            {
+                Program.notesParser.json.Notes.Remove(memberId);
+                await Program.notesParser.WriteJSON();
+                await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
+            }
+        }
+
+        [Command("convClear")]
+        [RequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task convClear(CommandContext ctx, DiscordThreadChannel thread)
+        {
+            //DiscordThreadChannel thread = ctx.Channel.Threads.Where(t => t.Id.Equals(threadId)).FirstOrDefault();
+            if (thread != null)
+            {
+                // On nettoie le fichier json
+                var conv = Program.conversationParser.json.Conversations.Where(c => c.Value.threadId == thread.Id).FirstOrDefault();
+                Program.conversationParser.json.Conversations.Remove(conv.Key);
+                await Program.conversationParser.WriteJSON();
+
+                // Puis on supprime le thread
+                await thread.DeleteAsync();
+                await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
+            }
+            else
+            {
+                await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
+                await ctx.RespondAsync("Ce thread ne semble pas exister.");
+            }
+        }
+
+        [Command("convIgnore")]
+        [RequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task convIgnore(CommandContext ctx, DiscordThreadChannel thread)
+        {
+            // On met à jour le fichier JSON
+            var conv = Program.conversationParser.json.Conversations.Where(c => c.Value.threadId == thread.Id).FirstOrDefault();
+            conv.Value.statut = "ignoré";
+            await Program.conversationParser.WriteJSON();
+
+            await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
+        }
+
+        [Command("convIgnore")]
+        [RequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task convIgnoreAnnule(CommandContext ctx, string arg)
+        {
+            if (arg.Equals("clear"))
+            {
+                // On réinitialise les statuts du fichier JSON
+                foreach (var conv in Program.conversationParser.json.Conversations)
+                {
+                    conv.Value.statut = null;
+                };
+
+                await Program.conversationParser.WriteJSON();
+                await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
+            }
         }
     }
 }

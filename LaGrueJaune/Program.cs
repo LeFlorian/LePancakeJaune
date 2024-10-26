@@ -7,8 +7,13 @@ using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
 using LaGrueJaune.commands;
 using LaGrueJaune.config;
+using Microsoft.Scripting.Hosting;
 using System;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace LaGrueJaune
@@ -25,6 +30,7 @@ namespace LaGrueJaune
 
         public static JSONHistoryParser historyParser;
         public static JSONNotesParser notesParser;
+        public static JSONConversationParser conversationParser;
         public static JSONHistory userToPurge;
 
         public static int purgeListPageIndex = 1;
@@ -47,6 +53,8 @@ namespace LaGrueJaune
             await historyParser.ReadJSON();
             notesParser = new JSONNotesParser();
             await notesParser.ReadJSON();
+            conversationParser = new JSONConversationParser();
+            await conversationParser.ReadJSON();
             #endregion
 
             #region Client setup
@@ -69,6 +77,7 @@ namespace LaGrueJaune
 
             Client.Ready += Client_Ready;
             Client.MessageCreated += OnMessageCreated;
+            Client.MessageCreated += OnDm;
             Client.ComponentInteractionCreated += OnButtonInteractionCreated;
             Client.ScheduledGuildEventCreated += OnEventCreated;
             Client.ScheduledGuildEventDeleted += OnEventRemove;
@@ -106,7 +115,7 @@ namespace LaGrueJaune
 
             await Client.ConnectAsync();
             
-            UpdateColorRole();
+            //UpdateColorRole();
 
             await Task.Delay(-1);
         }
@@ -510,7 +519,7 @@ namespace LaGrueJaune
             DiscordRole rainbowRole = Guild.GetRole(1181325726520193185);
             DiscordColor newColor = GetColorFromTime(time);
 
-            await rainbowRole.ModifyAsync(color: newColor);
+            //await rainbowRole.ModifyAsync(color: newColor);
 
             await Task.Delay(20000); // Attendre
 
@@ -529,7 +538,50 @@ namespace LaGrueJaune
                 return color;
             }
         }
-        
+
+        private static async Task OnDm(DiscordClient sender, MessageCreateEventArgs args)
+        {
+            if (args.Author.IsBot || args.Message.Content.StartsWith(config.prefix))
+            {
+                return;
+            }
+
+            // Dm reçu
+            if (args.Guild == null)
+            {
+                await conversationParser.privateConversation(args.Author.Id, args.Message, Guild.GetChannel(config.ID_staffChannel), Client);
+                return;
+            }
+
+            // Réponse dans un thread servant de conversation privée
+            var conv = Program.conversationParser.json.Conversations.Where(c => c.Value.threadId == args.Channel.Id).FirstOrDefault();
+            if (args.Channel.IsThread && conv.Value != null)
+            {
+                // Recherche du membre en comparant le hash de l'ID
+                foreach (DiscordMember member in args.Guild.Members.Values)
+                {
+                    byte[] tmpHash = ASCIIEncoding.ASCII.GetBytes(member.Id.ToString());
+                    string anonymId = System.Text.Encoding.UTF8.GetString(new MD5CryptoServiceProvider().ComputeHash(tmpHash));
+                    if (anonymId.Equals(conv.Key))
+                    {
+                        // Construction du message avec les fichiers joints
+                        string urls = "";
+                        foreach (DiscordAttachment file in args.Message.Attachments)
+                        {
+                            urls += $" {file.Url}";
+                        }
+
+                        await member.SendMessageAsync(args.Message.Content + urls
+                            + $"\n-# Envoyé par <@{args.Message.Author.Id}>");
+                        await args.Message.CreateReactionAsync(DiscordEmoji.FromName(Client, ":white_check_mark:"));
+                        return;
+                    }
+                }
+                await args.Message.CreateReactionAsync(DiscordEmoji.FromName(Client, ":x:"));
+                await args.Message.RespondAsync("Désolé, je n'ai pas pu retrouver le destinaire.");
+            }
+        }
+
         #endregion
     }
 }
