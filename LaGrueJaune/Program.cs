@@ -7,6 +7,7 @@ using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
 using LaGrueJaune.commands;
 using LaGrueJaune.config;
+using static LaGrueJaune.utils;
 using Microsoft.Scripting.Hosting;
 using System;
 using System.Linq;
@@ -15,6 +16,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using static Microsoft.Scripting.Hosting.Shell.ConsoleHostOptions;
 
 namespace LaGrueJaune
 {
@@ -85,6 +88,7 @@ namespace LaGrueJaune
             Client.ScheduledGuildEventUserRemoved += OnUserLeaveEvent;
             Client.ScheduledGuildEventCompleted += OnEventCompleted;
             Client.UnknownEvent += UnknownEvent;
+            Client.ComponentInteractionCreated += OnComponentInteraction;
 
             #endregion
 
@@ -579,6 +583,30 @@ namespace LaGrueJaune
                 }
                 await args.Message.CreateReactionAsync(DiscordEmoji.FromName(Client, ":x:"));
                 await args.Message.RespondAsync("Désolé, je n'ai pas pu retrouver le destinaire.");
+            }
+        }
+
+        private static async Task OnComponentInteraction(DiscordClient sender, ComponentInteractionCreateEventArgs args)
+        {
+            int buttonId = Int32.Parse(args.Id);
+            
+            List<string> list = Program.notesParser.json.Notes[args.User.Id].listeNotes;
+
+            if (buttonId.Equals(1))
+            {
+                return;
+            }
+            // Page suivante
+            else if (buttonId % 2 == 0 && buttonId/2 < list.Count)
+            {
+                var action = buildAction(args.Guild.Members.Values.Where(m => m.Id.Equals(args.User.Id)).First(), list[buttonId / 2], buttonId/2 + 1);
+                await args.Message.ModifyAsync(action);
+            }
+            // Page précédente
+            else if (buttonId % 2 != 0 && buttonId >= 3)
+            {
+                var action = buildAction(args.Guild.Members.Values.Where(m => m.Id.Equals(args.User.Id)).First(), list[(buttonId - 1) / 2 - 1], (buttonId - 1)/2);
+                await args.Message.ModifyAsync(action);
             }
         }
 

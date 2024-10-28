@@ -42,13 +42,12 @@ namespace LaGrueJaune.config
             
             if (json.Notes.ContainsKey(memberID))
             {
-                int incr = json.Notes[memberID].listeNotes.Keys.Max() + 1;
-                json.Notes[memberID].listeNotes.Add(incr, text);
+                json.Notes[memberID].listeNotes.Add(text);
             }
             else
             {
                 JSONNotes.MemberNotes newMemberNotes = new JSONNotes.MemberNotes();
-                newMemberNotes.listeNotes.Add(1, text);
+                newMemberNotes.listeNotes.Add(text);
                 json.Notes.Add(memberID, newMemberNotes);
             }
 
@@ -62,7 +61,7 @@ namespace LaGrueJaune.config
         {
             public string member;
             public double numberOfNotes;
-            public Dictionary<int, String> listeNotes = new Dictionary<int, String>();
+            public List<string> listeNotes = new List<string>();
         }
 
         public Dictionary<ulong, MemberNotes> Notes = new Dictionary<ulong, MemberNotes>();
