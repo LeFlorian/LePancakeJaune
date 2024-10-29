@@ -11,6 +11,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Net.Http;
 using static LaGrueJaune.commands.CommandsBank;
+using static LaGrueJaune.utils;
 using LibreTranslate.Net;
 using IronPython.Hosting;
 using Microsoft.Scripting.Hosting;
@@ -316,16 +317,21 @@ namespace LaGrueJaune.commands
             string notesTxt = "";
             if (Program.notesParser.json.Notes.Keys.Contains(memberId))
             {
-                foreach (KeyValuePair<int, String> note in Program.notesParser.json.Notes[memberId].listeNotes)
+                int page = 1;
+                var action = buildAction(ctx.Guild.Members.Values.Where(m => m.Id.Equals(memberId)).First(), Program.notesParser.json.Notes[memberId].listeNotes.First(), page);
+
+                await ctx.RespondAsync(action);
+
+                foreach (string note in Program.notesParser.json.Notes[memberId].listeNotes)
                 {
-                    notesTxt += $"\n{note.Key.ToString()}: {note.Value.ToString()}";
+                    notesTxt += $"\n{note}: {note}";
                 }
             }
             else
             {
                 notesTxt = "\n:person_shrugging:";
             }
-            await ctx.RespondAsync($"Liste des notes sur l'utilisateur <@{memberId.ToString()}>:{notesTxt}");
+            //await ctx.RespondAsync($"Liste des notes sur l'utilisateur <@{memberId.ToString()}>:{notesTxt}");
         }
 
         [Command("noteClear")]
@@ -336,10 +342,10 @@ namespace LaGrueJaune.commands
             {
                 return;
             }
-
+            List<string> list = Program.notesParser.json.Notes[memberId].listeNotes;
             if (index != null)
             {
-                Program.notesParser.json.Notes[memberId].listeNotes.Remove(index);
+                list.Remove(list[index - 1]);
                 await Program.notesParser.WriteJSON();
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
@@ -430,4 +436,5 @@ namespace LaGrueJaune.commands
             }
         }
     }
+
 }

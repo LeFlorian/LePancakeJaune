@@ -101,7 +101,6 @@ namespace LaGrueJaune.config
                     "Après 7 jours d'inactivité la conversation est effacée côté staff.\n\n" +
                     "Cette réaction :white_check_mark: indique lorsque ton message a bien été transmis");
                 await dm.CreateReactionAsync(DiscordEmoji.FromName(client, ":white_check_mark:"));
-               
 
                 // Sauvegarde du thread dans le json
                 JSONConversation.MemberConversation conv = new JSONConversation.MemberConversation();
