@@ -11,7 +11,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Net.Http;
 using static LaGrueJaune.commands.CommandsBank;
-using static LaGrueJaune.utils;
+using static LaGrueJaune.Utils;
 using LibreTranslate.Net;
 using IronPython.Hosting;
 using Microsoft.Scripting.Hosting;

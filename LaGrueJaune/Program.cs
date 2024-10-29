@@ -13,8 +13,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using static Microsoft.Scripting.Hosting.Shell.ConsoleHostOptions;
+using static LaGrueJaune.Utils;
 
 namespace LaGrueJaune
 {
@@ -115,39 +114,8 @@ namespace LaGrueJaune
             #endregion
 
             await Client.ConnectAsync();
-            
-            //UpdateColorRole();
 
             await Task.Delay(-1);
-        }
-
-        private static float time = 0;
-        private static bool killUpdateColorLoop = false;
-        private static async Task UpdateColorRole()
-        {
-            killUpdateColorLoop = true;
-            //Kill the precedent loop
-            await Task.Delay(60100);
-            killUpdateColorLoop = false;
-
-
-            Random rand = new Random();
-            time = DateTime.Now.Millisecond;
-
-            while (true && !killUpdateColorLoop)
-            {
-                time += 0.1f;
-
-                try
-                {
-                    await UpdateFloColor();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Erreur lors de la modification du rôle : {ex.Message}");
-                    await Task.Delay(60000); // Attendre 1 minute en cas d'erreur pour éviter un dépassement de la limite
-                }
-            }
         }
         
 
@@ -155,7 +123,6 @@ namespace LaGrueJaune
         private static Task Client_Ready(DiscordClient sender, ReadyEventArgs args)
         {
             UpdateDescription();
-            UpdateColorRole();
             return Task.CompletedTask;
         }
 
@@ -514,31 +481,6 @@ namespace LaGrueJaune
         }
         
         
-        private static async Task UpdateFloColor()
-        {
-
-            DiscordRole rainbowRole = Guild.GetRole(1181325726520193185);
-            DiscordColor newColor = GetColorFromTime(time);
-
-            //await rainbowRole.ModifyAsync(color: newColor);
-
-            await Task.Delay(20000); // Attendre
-
-            DiscordColor GetColorFromTime(float time)
-            {
-                float speed = 1f; // Change la vitesse de rotation de la roue chromatique
-                float angle = time * speed;
-
-                // Calcul des composantes RGB en utilisant des fonctions sinusoïdales décalées
-                byte R = (byte)((Math.Sin(angle) + 1) * 127.5);  // Conversion de [-1, 1] à [0, 255]
-                byte G = (byte)((Math.Sin(angle + 2 * Math.PI / 3) + 1) * 127.5);
-                byte B = (byte)((Math.Sin(angle + 4 * Math.PI / 3) + 1) * 127.5);
-
-                DiscordColor color = new DiscordColor(R, G, B);
-
-                return color;
-            }
-        }
 
         private static async Task OnDm(DiscordClient sender, MessageCreateEventArgs args)
         {
@@ -602,11 +544,12 @@ namespace LaGrueJaune
             }
 
             await historyParser.WriteJSON();
+        }
 
         private static async Task OnComponentInteraction(DiscordClient sender, ComponentInteractionCreateEventArgs args)
         {
             int buttonId = Int32.Parse(args.Id);
-            
+
             List<string> list = Program.notesParser.json.Notes[args.User.Id].listeNotes;
 
             if (buttonId.Equals(1))
@@ -614,15 +557,15 @@ namespace LaGrueJaune
                 return;
             }
             // Page suivante
-            else if (buttonId % 2 == 0 && buttonId/2 < list.Count)
+            else if (buttonId % 2 == 0 && buttonId / 2 < list.Count)
             {
-                var action = buildAction(args.Guild.Members.Values.Where(m => m.Id.Equals(args.User.Id)).First(), list[buttonId / 2], buttonId/2 + 1);
+                var action = buildAction(args.Guild.Members.Values.Where(m => m.Id.Equals(args.User.Id)).First(), list[buttonId / 2], buttonId / 2 + 1);
                 await args.Message.ModifyAsync(action);
             }
             // Page précédente
             else if (buttonId % 2 != 0 && buttonId >= 3)
             {
-                var action = buildAction(args.Guild.Members.Values.Where(m => m.Id.Equals(args.User.Id)).First(), list[(buttonId - 1) / 2 - 1], (buttonId - 1)/2);
+                var action = buildAction(args.Guild.Members.Values.Where(m => m.Id.Equals(args.User.Id)).First(), list[(buttonId - 1) / 2 - 1], (buttonId - 1) / 2);
                 await args.Message.ModifyAsync(action);
             }
         }

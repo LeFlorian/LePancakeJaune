@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace LaGrueJaune
 {
-    public class utils
+    public class Utils
     {
 
         public static DiscordEmbedBuilder BuildEmbedNotes(DiscordMember member, string note, int page, int nbTotal)
@@ -34,7 +34,7 @@ namespace LaGrueJaune
         public static Action<DiscordMessageBuilder> buildAction(DiscordMember member, String note, int page)
         {
             int nbTotal = Program.notesParser.json.Notes[member.Id].listeNotes.Count();
-            DiscordEmbedBuilder builder = utils.BuildEmbedNotes(member, note, page, nbTotal);
+            DiscordEmbedBuilder builder = Utils.BuildEmbedNotes(member, note, page, nbTotal);
             var previous = new DiscordButtonComponent(ButtonStyle.Primary, $"{2*page-1}", "Précédent", false);
             var next = new DiscordButtonComponent(ButtonStyle.Primary, $"{2*page}", "Suivant", false);
             IEnumerable<DiscordComponent> components = new DiscordComponent[] {previous,next};
