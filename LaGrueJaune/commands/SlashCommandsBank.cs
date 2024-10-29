@@ -14,6 +14,7 @@ namespace LaGrueJaune.commands
 {
     public class SlashCommandsBank : ApplicationCommandModule
     {
+        #region Debug
         [SlashCommand("Template", "Command template: Do nothing.")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
         public async Task Template(InteractionContext ctx)
@@ -31,7 +32,9 @@ namespace LaGrueJaune.commands
         {
             await ctx.CreateResponseAsync(new DiscordEmbedBuilder().WithDescription($"You are <@{ctx.User.Id}> !"));
         }
+        #endregion
 
+        #region Purge
         [SlashCommand("SelfAddingToPurge", "Command to adding itself in the purge list.")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
         public async Task SelfAddingToPurge(InteractionContext ctx)
@@ -48,14 +51,15 @@ namespace LaGrueJaune.commands
         {
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
 
-            await CleanHistory(ctx);
+            await Program.CleanHistory();
 
             Program.isPurgeMessage = true;
             DiscordMessageBuilder msg = await Program.GetPurgeMessage(Program.purgeListPageIndex);
+
             Program.actualPurgeMessage = await ctx.Channel.SendMessageAsync(msg);
 
-            await ctx.DeleteResponseAsync();
-
+            var response = new DiscordWebhookBuilder().AddEmbed(msg.Embed);
+            await ctx.EditResponseAsync(response);
         }
 
         [SlashCommand("SetUserKickable", "Set a user in purge list to be kickable or not.")]
@@ -114,7 +118,7 @@ namespace LaGrueJaune.commands
         {
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
 
-            await CleanHistory(ctx);
+            await Program.CleanHistory();
             int nbOfKickedUsers = 0;
 
             foreach (var user in Program.userToPurge.History)
@@ -135,39 +139,14 @@ namespace LaGrueJaune.commands
 
             }
 
-            await CleanHistory(ctx);
+            await Program.CleanHistory();
             await ctx.Channel.SendMessageAsync($"Kicked {nbOfKickedUsers} innactives users in the list");
 
             await ctx.DeleteResponseAsync();
         }
+        #endregion
 
-        [SlashCommand("CleanHistory", "Clear all the history (do not use).")]
-        [SlashRequireUserPermissions(Permissions.Administrator)]
-        public static async Task CleanHistory(InteractionContext ctx)
-        {
-            await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
-
-            List<ulong> membersToClean = new List<ulong>();
-            var members = await Program.Guild.GetAllMembersAsync();
-
-            foreach (var user in Program.historyParser.json.History)
-            {
-                if (!members.Any(x => x.Id == user.Key))
-                {
-                    membersToClean.Add(user.Key);
-                }
-            }
-
-            foreach (var user in membersToClean)
-            {
-                Program.historyParser.json.History.Remove(user);
-            }
-
-            await Program.historyParser.WriteJSON();
-
-            await ctx.DeleteResponseAsync();
-        }
-
+        #region History
         [SlashCommand("AddHistory", "Add user in the history.")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
         public async Task AddHistory(
@@ -252,7 +231,14 @@ namespace LaGrueJaune.commands
 
             await ctx.DeleteResponseAsync();
         }
+        #endregion
 
+        #region Embeds
+
+        #endregion
+
+
+        #region Common
         [SlashCommand("Help", "Show all commands.")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
         public async Task Help(InteractionContext ctx)
@@ -300,6 +286,8 @@ namespace LaGrueJaune.commands
 
             await ctx.DeleteResponseAsync();
         }
+
+        #endregion
 
     }
 }

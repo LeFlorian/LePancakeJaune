@@ -7,13 +7,11 @@ using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
 using LaGrueJaune.commands;
 using LaGrueJaune.config;
-using Microsoft.Scripting.Hosting;
 using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices.ComTypes;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace LaGrueJaune
@@ -554,7 +552,7 @@ namespace LaGrueJaune
             }
 
             // Réponse dans un thread servant de conversation privée
-            var conv = Program.conversationParser.json.Conversations.Where(c => c.Value.threadId == args.Channel.Id).FirstOrDefault();
+            var conv = conversationParser.json.Conversations.Where(c => c.Value.threadId == args.Channel.Id).FirstOrDefault();
             if (args.Channel.IsThread && conv.Value != null)
             {
                 // Recherche du membre en comparant le hash de l'ID
@@ -580,6 +578,28 @@ namespace LaGrueJaune
                 await args.Message.CreateReactionAsync(DiscordEmoji.FromName(Client, ":x:"));
                 await args.Message.RespondAsync("Désolé, je n'ai pas pu retrouver le destinaire.");
             }
+        }
+
+
+        public static async Task CleanHistory()
+        {
+            List<ulong> membersToClean = new List<ulong>();
+            var members = await Guild.GetAllMembersAsync();
+
+            foreach (var user in historyParser.json.History)
+            {
+                if (!members.Any(x => x.Id == user.Key))
+                {
+                    membersToClean.Add(user.Key);
+                }
+            }
+
+            foreach (var user in membersToClean)
+            {
+                historyParser.json.History.Remove(user);
+            }
+
+            await historyParser.WriteJSON();
         }
 
         #endregion
