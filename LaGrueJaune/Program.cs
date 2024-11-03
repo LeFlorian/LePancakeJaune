@@ -572,6 +572,14 @@ namespace LaGrueJaune
             }
         }
 
+        public static bool IsValidUri(string uriString)
+        {
+            if (string.IsNullOrWhiteSpace(uriString))
+                return false;
+
+            return Uri.TryCreate(uriString, UriKind.Absolute, out Uri uriResult)
+                   && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
+        }
         #endregion
     }
 }

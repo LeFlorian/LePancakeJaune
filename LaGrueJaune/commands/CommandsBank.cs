@@ -431,24 +431,26 @@ namespace LaGrueJaune.commands
 
         [Command]
         [RequireUserPermissions(Permissions.ModerateMembers)]
-        public async Task EmbedCreate(CommandContext ctx, string title = "", string description = "", string hexColor = "")
+        public async Task EmbedCreate(CommandContext ctx,
+            string title = "",
+            string description = "",
+            string hexColor = "",
+            string imageUrl = "",
+            string titleUrl = "",
+            string authorName = "",
+            string authorUrl = "",
+            string authorIconUrl = "",
+            string footerText = "",
+            string footerIconUrl = "",
+            string thumbmailUrl = ""
+            )
         {
-            var embed = new DiscordEmbedBuilder()
-            {
-                Title = title,
-                Description = description,
-                Color = new DiscordColor(hexColor)
-                /*Author = dea,
-                Fields = "",
-                Footer = "",
-                ImageUrl = "",
-                Thumbnail = "",
-                Timestamp = ""*/
-
-            };
+            var embed = new DiscordEmbedBuilder() { Title = "Work in progress" };
 
             DiscordMessage message = await ctx.Channel.SendMessageAsync(embed: embed);
             currentEditingMessage = message;
+
+            EmbedModify(ctx, title, description, hexColor, imageUrl, titleUrl, authorName, authorUrl, authorIconUrl, footerText, footerIconUrl, thumbmailUrl);
         }
 
 
@@ -477,21 +479,17 @@ namespace LaGrueJaune.commands
             string title = "", 
             string description = "", 
             string hexColor = "",
+            string imageUrl = "",
+            string titleUrl = "",
             string authorName = "",
             string authorUrl = "",
-            string authorIconUrl = "")
+            string authorIconUrl = "",
+            string footerText = "",
+            string footerIconUrl = "",
+            string thumbmailUrl = ""
+            )
         {
             DiscordEmbedBuilder newEmbed = new DiscordEmbedBuilder(currentEditingMessage.Embeds[0]);
-
-            /*  Title = title,
-                Description = description,
-                Color = new DiscordColor(hexColor)
-                Author = dea,
-                Fields = "",
-                Footer = "",
-                ImageUrl = "",
-                Thumbnail = "",
-                Timestamp = ""*/
 
             if (title != "")
                 newEmbed.WithTitle(title);
@@ -502,22 +500,58 @@ namespace LaGrueJaune.commands
             if (hexColor != "")
                 newEmbed.WithColor(new DiscordColor(hexColor));
 
+            if (newEmbed.Author == null && (authorName != "" || authorUrl != "" || authorIconUrl != ""))
+            {
+                newEmbed.WithAuthor(" ");
+            }
+
             if (authorName != "")
-                newEmbed.WithAuthor(name: authorName);
+                newEmbed.WithAuthor(
+                    name: authorName,
+                    url: newEmbed.Author.Url,
+                    iconUrl: newEmbed.Author.IconUrl);
 
-            if (authorUrl != "")
-                newEmbed.WithAuthor(url: authorUrl);
+            if (Program.IsValidUri(authorUrl))
+                newEmbed.WithAuthor(
+                    url: authorUrl,
+                    name: newEmbed.Author.Name,
+                    iconUrl: newEmbed.Author.IconUrl);
 
-            if (authorIconUrl != "")
-                newEmbed.WithAuthor(iconUrl: authorIconUrl);
+            if (Program.IsValidUri(authorIconUrl))
+                newEmbed.WithAuthor(
+                    iconUrl: authorIconUrl,
+                    name: newEmbed.Author.Name,
+                    url: newEmbed.Author.Url);
+
+            if (newEmbed.Footer == null && (footerText != "" || footerIconUrl != ""))
+            {
+                newEmbed.WithFooter(" ");
+            }
+
+            if (footerText != "")
+                newEmbed.WithFooter(
+                    text: footerText,
+                    iconUrl: newEmbed.Footer.IconUrl);
+
+            if (Program.IsValidUri(footerIconUrl))
+                newEmbed.WithFooter(
+                    iconUrl: footerIconUrl,
+                    text: newEmbed.Footer.Text);
+
+            if (Program.IsValidUri(imageUrl))
+                newEmbed.WithImageUrl(imageUrl);
 
 
+            if (Program.IsValidUri(thumbmailUrl))
+                newEmbed.WithThumbnail(url: thumbmailUrl);
+
+            if (Program.IsValidUri(titleUrl))
+                newEmbed.WithUrl(titleUrl);
 
             DiscordMessageBuilder message = new DiscordMessageBuilder();
             message.AddEmbed(newEmbed);
 
             await currentEditingMessage.ModifyAsync(message);
-
         }
 
         #endregion

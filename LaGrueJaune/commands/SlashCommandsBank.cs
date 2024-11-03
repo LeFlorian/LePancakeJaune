@@ -237,8 +237,154 @@ namespace LaGrueJaune.commands
 
         #region Embeds
 
-        #endregion
+        DiscordMessage currentEditingMessage;
 
+        [SlashCommand("EmbedCreate","Make an embeded message")]
+        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task EmbedCreate(InteractionContext ctx,
+            [Option("Title",        "Embed title")] string title = "",
+            [Option("Description",  "Embed description")] string description = "",
+            [Option("Color",        "Embed color")] string hexColor = "",
+            [Option("ImageUrl",     "Embed image url")] string imageUrl = "",
+            [Option("TitleUrl",     "Embed title url")] string titleUrl = "",
+            [Option("AuthorName",   "Embed author name")] string authorName = "",
+            [Option("AuthorUrl",    "Embed author url")] string authorUrl = "",
+            [Option("AuthorIconUrl","Embed author icon url")] string authorIconUrl = "",
+            [Option("FooterText",   "Embed footer text")] string footerText = "",
+            [Option("FooterIconUrl","Embed footer icon url")] string footerIconUrl = "",
+            [Option("ThumbmailUrl", "Embed thumbmail url")] string thumbmailUrl = ""
+            )
+        {
+            await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+
+            var embed = new DiscordEmbedBuilder() { Title = "Work in progress" };
+
+            DiscordMessage message = await ctx.Channel.SendMessageAsync(embed: embed);
+            currentEditingMessage = message;
+
+            await EmbedModify(ctx, title, description, hexColor, imageUrl, titleUrl, authorName, authorUrl, authorIconUrl, footerText, footerIconUrl, thumbmailUrl);
+
+            await ctx.DeleteResponseAsync();
+        }
+
+        [SlashCommand("EmbedModify", "Modify an embeded message")]
+        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task EmbedModify(InteractionContext ctx,
+            [Option("Title", "Embed title")] string title = "",
+            [Option("Description", "Embed description")] string description = "",
+            [Option("Color", "Embed color")] string hexColor = "",
+            [Option("ImageUrl", "Embed image url")] string imageUrl = "",
+            [Option("TitleUrl", "Embed title url")] string titleUrl = "",
+            [Option("AuthorName", "Embed author name")] string authorName = "",
+            [Option("AuthorUrl", "Embed author url")] string authorUrl = "",
+            [Option("AuthorIconUrl", "Embed author icon url")] string authorIconUrl = "",
+            [Option("FooterText", "Embed footer text")] string footerText = "",
+            [Option("FooterIconUrl", "Embed footer icon url")] string footerIconUrl = "",
+            [Option("ThumbmailUrl", "Embed thumbmail url")] string thumbmailUrl = ""
+            )
+        {
+
+            await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+
+            if (currentEditingMessage.Embeds.Count > 0)
+            {
+                DiscordEmbedBuilder newEmbed = new DiscordEmbedBuilder(currentEditingMessage.Embeds[0]);
+
+                if (title != "")
+                    newEmbed.WithTitle(title);
+
+                if (description != "")
+                    newEmbed.WithDescription(description);
+
+                if (hexColor != "")
+                    newEmbed.WithColor(new DiscordColor(hexColor));
+
+                if (newEmbed.Author == null && (authorName != "" || authorUrl != "" || authorIconUrl != ""))
+                {
+                    newEmbed.WithAuthor(" ");
+                }
+
+                if (authorName != "")
+                    newEmbed.WithAuthor(
+                        name: authorName,
+                        url: newEmbed.Author.Url,
+                        iconUrl: newEmbed.Author.IconUrl);
+
+                if (Program.IsValidUri(authorUrl))
+                    newEmbed.WithAuthor(
+                        url: authorUrl,
+                        name: newEmbed.Author.Name,
+                        iconUrl: newEmbed.Author.IconUrl);
+
+                if (Program.IsValidUri(authorIconUrl))
+                    newEmbed.WithAuthor(
+                        iconUrl: authorIconUrl,
+                        name: newEmbed.Author.Name,
+                        url: newEmbed.Author.Url);
+
+                if (newEmbed.Footer == null && (footerText != "" || footerIconUrl != ""))
+                {
+                    newEmbed.WithFooter(" ");
+                }
+
+                if (footerText != "")
+                    newEmbed.WithFooter(
+                        text: footerText,
+                        iconUrl: newEmbed.Footer.IconUrl);
+
+                if (Program.IsValidUri(footerIconUrl))
+                    newEmbed.WithFooter(
+                        iconUrl: footerIconUrl,
+                        text: newEmbed.Footer.Text);
+
+                if (Program.IsValidUri(imageUrl))
+                    newEmbed.WithImageUrl(imageUrl);
+
+
+                if (Program.IsValidUri(thumbmailUrl))
+                    newEmbed.WithThumbnail(url: thumbmailUrl);
+
+                if (Program.IsValidUri(titleUrl))
+                    newEmbed.WithUrl(titleUrl);
+
+                DiscordMessageBuilder message = new DiscordMessageBuilder();
+                message.AddEmbed(newEmbed);
+
+                await currentEditingMessage.ModifyAsync(message);
+            }
+
+            await ctx.DeleteResponseAsync();
+        }
+
+
+
+        [SlashCommand("EmbedSelect", "Select an embeded message")]
+        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task EmbedSelect(InteractionContext ctx, 
+            [Option("Message","The url of the embed to modify")] string messageUrl)
+        {
+
+            await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+
+            DiscordMessage message = await Program.GetMessageFromURI(messageUrl);
+            if (message == null)
+            {
+                var warningMSG = await ctx.Channel.SendMessageAsync($"Message non trouvé.");
+
+                await Task.Delay(5000);
+
+                warningMSG.DeleteAsync();
+            }
+            else
+            {
+                currentEditingMessage = message;
+            }
+
+
+            await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("Message sélectionné."));
+        }
+
+        #endregion
 
         #region Common
         [SlashCommand("Help", "Show all commands.")]
