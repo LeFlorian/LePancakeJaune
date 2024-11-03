@@ -109,7 +109,7 @@ namespace LaGrueJaune
             SlashCommands = Client.UseSlashCommands();
             SlashCommands.RegisterCommands<SlashCommandsBank>();
 
-            Console.WriteLine(SlashCommands.RegisteredCommands.Count);
+            Console.WriteLine($"Registered slash commands: {SlashCommands.RegisteredCommands.Count}");
 
             #endregion
 
