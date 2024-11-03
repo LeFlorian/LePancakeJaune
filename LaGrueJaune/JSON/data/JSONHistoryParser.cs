@@ -20,7 +20,7 @@ namespace LaGrueJaune.config
 
                 this.json = new JSONHistory();
                 this.json.History = data;
-                Console.WriteLine(data.Count);
+                Console.WriteLine($"History: {data.Count}");
             }
         }
 

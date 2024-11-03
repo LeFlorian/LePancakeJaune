@@ -21,7 +21,7 @@ namespace LaGrueJaune.config
 
                 this.json = new JSONNotes();
                 this.json.Notes = data;
-                Console.WriteLine(data.Count);
+                Console.WriteLine($"Notes: {data.Count}");
             }
         }
 

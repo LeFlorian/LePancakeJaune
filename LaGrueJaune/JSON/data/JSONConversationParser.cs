@@ -1,7 +1,5 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
-using IronPython.Runtime;
-using Microsoft.Scripting.Utils;
 using Newtonsoft.Json;
 using RandomNameGeneratorLibrary;
 using System;
@@ -11,7 +9,6 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using static LaGrueJaune.config.JSONNotes;
 
 namespace LaGrueJaune.config
 {
@@ -28,7 +25,7 @@ namespace LaGrueJaune.config
 
                 this.json = new JSONConversation();
                 this.json.Conversations = data;
-                Console.WriteLine(data.Count);
+                Console.WriteLine($"Conversations: {data.Count}");
             }
         }
 
