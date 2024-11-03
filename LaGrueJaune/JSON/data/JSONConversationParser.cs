@@ -1,5 +1,6 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
+using IronPython.Compiler.Ast;
 using IronPython.Runtime;
 using Microsoft.Scripting.Utils;
 using Newtonsoft.Json;
@@ -58,25 +59,30 @@ namespace LaGrueJaune.config
                 return;
             }
 
+            Boolean threadExist = false;
             // On vérifie si un thread existe déjà pour ce membre
             if (json.Conversations.Keys.Contains(anonymId))
             {
                 ulong threadId = json.Conversations[anonymId].threadId;
                 DiscordThreadChannel thread = dumpChannel.Threads.Where(t => t.Id.Equals(threadId)).FirstOrDefault();
+                threadExist = thread != null;
 
-                // Construction du message avec les fichiers joints
-                string urls = "";
-                foreach (DiscordAttachment file in dm.Attachments)
+                if (threadExist)
                 {
-                    urls += $" {file.Url}";
+                    // Construction du message avec les fichiers joints
+                    string urls = "";
+                    foreach (DiscordAttachment file in dm.Attachments)
+                    {
+                        urls += $" {file.Url}";
+                    }
+
+                    await thread.SendMessageAsync(dm.Content + "\n" + urls);
+
+                    await dm.CreateReactionAsync(DiscordEmoji.FromName(client, ":white_check_mark:"));
                 }
-
-                await thread.SendMessageAsync(dm.Content + "\n" + urls);
-
-                await dm.CreateReactionAsync(DiscordEmoji.FromName(client, ":white_check_mark:"));
             }
 
-            else
+            if (!threadExist)
             {
                 // Génère un nom complet aléatoire pour faciliter la lecture
                 PersonNameGenerator personGenerator = new PersonNameGenerator();
@@ -92,7 +98,7 @@ namespace LaGrueJaune.config
                 {
                     urls += $" {file.Url}";
                 }
-                
+
                 await thread.SendMessageAsync(dm.Content + "\n" + urls);
 
                 await dm.RespondAsync("Bonjour et merci pour ta communication !\n\n" +
@@ -105,6 +111,10 @@ namespace LaGrueJaune.config
                 // Sauvegarde du thread dans le json
                 JSONConversation.MemberConversation conv = new JSONConversation.MemberConversation();
                 conv.threadId = thread.Id;
+                if (json.Conversations.ContainsKey(anonymId))
+                {
+                    json.Conversations.Remove(anonymId);
+                }
                 json.Conversations.Add(anonymId, conv);
                 await WriteJSON();
             }

@@ -5,10 +5,12 @@ using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.SlashCommands.Attributes;
 using LaGrueJaune.config;
+using static LaGrueJaune.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Scripting.Hosting;
 
 namespace LaGrueJaune.commands
 {
@@ -289,5 +291,99 @@ namespace LaGrueJaune.commands
 
         #endregion
 
+        #region Notes
+        [SlashCommand("Note", "Ajoute une note pour le membre spécifié")]
+        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+
+        public async Task Note(InteractionContext ctx, 
+            [Option("Membre", "Membre")] DiscordUser member,
+            [Option("Texte", "Texte à ajouter en tant que note")] string phrase)
+        {
+            if (ctx.Guild == null)
+            {
+                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
+                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
+                return;
+            }
+
+            await Program.notesParser.AddNotes(member.Id, $"{phrase}\n{DateTime.Now.ToString()}");
+
+            int nbNotes = Program.notesParser.json.Notes[member.Id].listeNotes.Count;
+
+            await ctx.Interaction.DeferAsync(ephemeral: false);
+            string total = $"Note n°{nbNotes.ToString()} ajoutée pour <@{member.Id}>.";
+            DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent(total);
+            await ctx.Interaction.CreateFollowupMessageAsync(builder);
+
+        }
+
+        [SlashCommand("NoteList", "Affiche la liste des notes du membre spécifié")]
+        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task NoteList(InteractionContext ctx, [Option("Membre", "Membre")] DiscordUser member)
+        {
+            if (ctx.Guild == null)
+            {
+                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
+                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
+                return;
+            }
+
+            await ctx.Interaction.DeferAsync(ephemeral: false);
+
+            if (Program.notesParser.json.Notes.Keys.Contains(member.Id))
+            {
+                int page = 1;
+                int nbTotal = Program.notesParser.json.Notes[member.Id].listeNotes.Count();
+
+                string note = Program.notesParser.json.Notes[member.Id].listeNotes.First();
+                DiscordEmbedBuilder builder = BuildEmbedNotes(member, note, page, nbTotal);
+                var previous = new DiscordButtonComponent(ButtonStyle.Primary, $"{member.Id}-{2 * page - 1}", "Précédent", false);
+                var next = new DiscordButtonComponent(ButtonStyle.Primary, $"{member.Id}-{2 * page}", "Suivant", false);
+                IEnumerable<DiscordComponent> components = new DiscordComponent[] { previous, next };
+                DiscordMessageBuilder message = new DiscordMessageBuilder().WithEmbed(builder);
+                DiscordFollowupMessageBuilder reponse = new DiscordFollowupMessageBuilder(message).AddComponents(components);
+
+                await ctx.Interaction.CreateFollowupMessageAsync(reponse);
+            }
+
+            else
+            {
+                DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"<@{member.Id}> n'a pas de note ! :person_shrugging:");
+                await ctx.Interaction.CreateFollowupMessageAsync(builder);
+            }
+        }
+
+        [SlashCommand("NoteClear", "Supprime la note du membre spécifié ou toute sa liste")]
+        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task noteClear(InteractionContext ctx, [Option("Membre", "Membre")] DiscordUser member, [Option("Note", "Numéro de note à supprimer, 0 pour toutes")] string number)
+        {
+            if (ctx.Guild == null)
+            {
+                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
+                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
+                return;
+            }
+
+            await ctx.Interaction.DeferAsync(ephemeral: false);
+            int index = Convert.ToInt32(number);
+            if (index == 0)
+            {
+                Program.notesParser.json.Notes.Remove(member.Id);
+                await Program.notesParser.WriteJSON();
+                DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($":broom: Toutes les notes de <@{member.Id}> ont été supprimées.");
+                await ctx.Interaction.CreateFollowupMessageAsync(builder);
+            }
+            else
+            {
+                List<string> list = Program.notesParser.json.Notes[member.Id].listeNotes;
+                list.Remove(list[index - 1]);
+                await Program.notesParser.WriteJSON();
+                DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($":broom: Note n°{number} supprimée pour <@{member.Id}>.");
+                await ctx.Interaction.CreateFollowupMessageAsync(builder);
+            }
+
+        }
+
+        #endregion
     }
 }
