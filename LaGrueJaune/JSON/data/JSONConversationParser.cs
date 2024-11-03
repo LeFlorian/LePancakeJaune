@@ -1,11 +1,5 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
-<<<<<<< HEAD
-using IronPython.Compiler.Ast;
-using IronPython.Runtime;
-using Microsoft.Scripting.Utils;
-=======
->>>>>>> 306c7a0dd78c3253f4424984fd591f9497d67c9a
 using Newtonsoft.Json;
 using RandomNameGeneratorLibrary;
 using System;

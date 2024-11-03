@@ -385,5 +385,77 @@ namespace LaGrueJaune.commands
         }
 
         #endregion
+
+        #region Conversations
+        [SlashCommand("convClear", "Supprime le fil anonyme spécifié")]
+        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+
+        public async Task convClear(InteractionContext ctx, [Option("Fil", "Fil à supprimer")] DiscordChannel thread)
+        {
+            if (ctx.Guild == null)
+            {
+                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
+                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
+                return;
+            }
+
+            await ctx.Interaction.DeferAsync(ephemeral: false);
+
+            if (thread != null)
+            {
+                // On nettoie le fichier json
+                var conv = Program.conversationParser.json.Conversations.Where(c => c.Value.threadId == thread.Id).FirstOrDefault();
+                Program.conversationParser.json.Conversations.Remove(conv.Key);
+                await Program.conversationParser.WriteJSON();
+
+                // Puis on supprime le thread
+                await thread.DeleteAsync();
+                DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($":broom: Le fil {thread.Name} a bien été supprimé.");
+                await ctx.Interaction.CreateFollowupMessageAsync(builder);
+            }
+            else
+            {
+                DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"Ce fil ne semble pas exister. :person_shrugging:");
+                await ctx.Interaction.CreateFollowupMessageAsync(builder);
+            }
+        }
+
+        [SlashCommand("convIgnore", "Ignore les nouveaux message entrants du fil anonyme spécifiée")]
+        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task convIgnore(InteractionContext ctx, [Option("Fil", "Fil à ignorer")] DiscordChannel thread, [Option("Annuler", "Mettre oui pour réactiver les messages entrants du thread")] string cancel = "non")
+        {
+            if (ctx.Guild == null)
+            {
+                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
+                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
+                return;
+            }
+
+            await ctx.Interaction.DeferAsync(ephemeral: false);
+            if (!"oui".Equals(cancel))
+            {
+                // On met à jour le fichier JSON
+                var conv = Program.conversationParser.json.Conversations.Where(c => c.Value.threadId == thread.Id).FirstOrDefault();
+                conv.Value.statut = "ignoré";
+                await Program.conversationParser.WriteJSON();
+
+                DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"Les nouveaux messages entrants de <#{thread.Id}> sont désormais bloqués.");
+                await ctx.Interaction.CreateFollowupMessageAsync(builder);
+            }
+
+            else
+            {
+                // On réinitialise les statuts du fichier JSON
+                foreach (var conv in Program.conversationParser.json.Conversations)
+                {
+                    conv.Value.statut = null;
+                };
+
+                await Program.conversationParser.WriteJSON();
+                DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"Les messages entrants de <#{thread.Id}> sont désormais réactivés");
+                await ctx.Interaction.CreateFollowupMessageAsync(builder);
+            }
+        }
+        # endregion
     }
 }
