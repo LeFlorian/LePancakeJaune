@@ -9,12 +9,12 @@ namespace LaGrueJaune
     public class Utils
     {
 
-        public static DiscordEmbedBuilder BuildEmbedNotes(DiscordMember member, string note, int page, int nbTotal)
+        public static DiscordEmbedBuilder BuildEmbedNotes(DiscordUser member, string note, int page, int nbTotal)
         {
 
             DiscordEmbedBuilder builder = new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Gold)
-                .WithTitle(member.DisplayName)
+                .WithTitle(member.Username)
                 .WithAuthor("Listes des notes")
                 //.WithDescription("Notes enregistrées")
                 .WithThumbnail(member.AvatarUrl)
@@ -29,10 +29,9 @@ namespace LaGrueJaune
         {
             int nbTotal = Program.notesParser.json.Notes[member.Id].listeNotes.Count();
             DiscordEmbedBuilder builder = Utils.BuildEmbedNotes(member, note, page, nbTotal);
-            var previous = new DiscordButtonComponent(ButtonStyle.Primary, $"{2*page-1}", "Précédent", false);
-            var next = new DiscordButtonComponent(ButtonStyle.Primary, $"{2*page}", "Suivant", false);
+            var previous = new DiscordButtonComponent(ButtonStyle.Primary, $"{member.Id}-{2*page-1}", "Précédent", false);
+            var next = new DiscordButtonComponent(ButtonStyle.Primary, $"{member.Id}-{2*page}", "Suivant", false);
             IEnumerable<DiscordComponent> components = new DiscordComponent[] {previous,next};
-            DiscordActionRowComponent row = new DiscordActionRowComponent(components);
 
             return new Action<DiscordMessageBuilder>((DiscordMessageBuilder) => DiscordMessageBuilder.WithEmbed(builder).AddComponents(components));
 

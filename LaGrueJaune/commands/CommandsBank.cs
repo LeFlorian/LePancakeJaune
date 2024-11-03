@@ -325,7 +325,7 @@ namespace LaGrueJaune.commands
 
         [Command("noteClear")]
         [RequireUserPermissions(Permissions.ModerateMembers)]
-        public async Task getNotes(CommandContext ctx, ulong memberId, int index)
+        public async Task clearNotes(CommandContext ctx, ulong memberId, int index)
         {
             if (ctx.Guild == null)
             {

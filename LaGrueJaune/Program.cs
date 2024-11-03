@@ -548,9 +548,11 @@ namespace LaGrueJaune
 
         private static async Task OnComponentInteraction(DiscordClient sender, ComponentInteractionCreateEventArgs args)
         {
-            int buttonId = Int32.Parse(args.Id);
-
-            List<string> list = Program.notesParser.json.Notes[args.User.Id].listeNotes;
+            Console.WriteLine(args.Id.Split('-')[0]);
+            ulong userId = Convert.ToUInt64(args.Id.Split('-')[0]);
+            int buttonId = Int32.Parse(args.Id.Split('-')[1]);
+            
+            List<string> list = Program.notesParser.json.Notes[userId].listeNotes;
 
             if (buttonId.Equals(1))
             {
@@ -559,13 +561,13 @@ namespace LaGrueJaune
             // Page suivante
             else if (buttonId % 2 == 0 && buttonId / 2 < list.Count)
             {
-                var action = buildAction(args.Guild.Members.Values.Where(m => m.Id.Equals(args.User.Id)).First(), list[buttonId / 2], buttonId / 2 + 1);
+                var action = buildAction(args.Guild.Members.Values.Where(m => m.Id.Equals(userId)).First(), list[buttonId / 2], buttonId / 2 + 1);
                 await args.Message.ModifyAsync(action);
             }
             // Page précédente
             else if (buttonId % 2 != 0 && buttonId >= 3)
             {
-                var action = buildAction(args.Guild.Members.Values.Where(m => m.Id.Equals(args.User.Id)).First(), list[(buttonId - 1) / 2 - 1], (buttonId - 1) / 2);
+                var action = buildAction(args.Guild.Members.Values.Where(m => m.Id.Equals(userId)).First(), list[(buttonId - 1) / 2 - 1], (buttonId - 1) / 2);
                 await args.Message.ModifyAsync(action);
             }
         }
