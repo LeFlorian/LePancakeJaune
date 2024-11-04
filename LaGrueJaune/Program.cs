@@ -7,6 +7,8 @@ using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
 using LaGrueJaune.commands;
 using LaGrueJaune.config;
+using Quartz.Impl;
+using Quartz;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +16,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using static LaGrueJaune.Utils;
+using static LaGrueJaune.config.JSONAnniversaires;
 
 namespace LaGrueJaune
 {
@@ -30,6 +33,7 @@ namespace LaGrueJaune
         public static JSONHistoryParser historyParser;
         public static JSONNotesParser notesParser;
         public static JSONConversationParser conversationParser;
+        public static JSONAnniversairesParser anniversairesParser;
         public static JSONHistory userToPurge;
 
         public static int purgeListPageIndex = 1;
@@ -39,7 +43,6 @@ namespace LaGrueJaune
         public static bool isPurgeMessage;
 
         public static int eventNumber;
-
 
         static async Task Main(string[] args)
         {
@@ -54,6 +57,8 @@ namespace LaGrueJaune
             await notesParser.ReadJSON();
             conversationParser = new JSONConversationParser();
             await conversationParser.ReadJSON();
+            anniversairesParser = new JSONAnniversairesParser();
+            await anniversairesParser.ReadJSON();
             #endregion
 
             #region Client setup
@@ -115,6 +120,21 @@ namespace LaGrueJaune
 
             await Client.ConnectAsync();
 
+            // Trigger pour vérifier les anniversaires à 8h chaque matin
+            var trigger = TriggerBuilder.Create()
+                .WithDailyTimeIntervalSchedule(s => s
+                .WithIntervalInHours(24)
+                    //.WithIntervalInHours(24) // daily
+                    .StartingDailyAt(TimeOfDay.HourAndMinuteOfDay(8, 0)) // 8h du matin
+                )
+                .Build();
+
+            // Planification du job déclenché par le trigger à 8h
+            StdSchedulerFactory factory = new StdSchedulerFactory();
+            IScheduler scheduler = await factory.GetScheduler();
+            await scheduler.Start();
+            await scheduler.ScheduleJob(JobBuilder.Create<birthdayWatch>().Build(), trigger);
+        
             await Task.Delay(-1);
         }
         
@@ -579,6 +599,21 @@ namespace LaGrueJaune
 
             return Uri.TryCreate(uriString, UriKind.Absolute, out Uri uriResult)
                    && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
+        }
+
+        // Tâche qui souhaite bon anniversaire en comparant la date du jour avec la date des anniversaires
+        public static Task wishBirthday()
+        {
+            string currentDate = DateTime.Now.ToString().Substring(0,5);
+            
+            Console.WriteLine(currentDate);
+            foreach (KeyValuePair<string, MemberAnniversaire> memberAnniv in Program.anniversairesParser.json.Anniversaires)
+            {
+                if (currentDate.Equals(memberAnniv.Value.dateAnniv)){
+                    Client.SendMessageAsync(Guild.GetChannel(config.ID_generalChannel), $"Bon anniversaire {memberAnniv.Key} !! :partying_face: :tada: ");
+                }
+            };
+            return Task.CompletedTask;
         }
         #endregion
     }

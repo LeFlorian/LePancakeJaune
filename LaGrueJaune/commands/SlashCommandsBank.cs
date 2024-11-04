@@ -453,11 +453,13 @@ namespace LaGrueJaune.commands
                 return;
             }
 
-            await Program.notesParser.AddNotes(member.Id, $"{phrase}\n\n{DateTime.Now.ToString()}");
-
-            int nbNotes = Program.notesParser.json.Notes[member.Id].listeNotes.Count;
-
             await ctx.Interaction.DeferAsync(ephemeral: false);
+
+            // Sauvegarde de la note avec horodatage
+            await Program.notesParser.AddNotes(member.Id, $"{phrase}\n\n-# {DateTime.Now.ToString()}");
+
+            // Construction et envoi de la réponse
+            int nbNotes = Program.notesParser.json.Notes[member.Id].listeNotes.Count;
             string total = $"Note n°{nbNotes.ToString()} ajoutée pour <@{member.Id}>.";
             DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent(total);
             await ctx.Interaction.CreateFollowupMessageAsync(builder);
@@ -477,11 +479,13 @@ namespace LaGrueJaune.commands
 
             await ctx.Interaction.DeferAsync(ephemeral: false);
 
+            // Cas où le membre a des notes
             if (Program.notesParser.json.Notes.Keys.Contains(member.Id))
             {
                 int page = 1;
                 int nbTotal = Program.notesParser.json.Notes[member.Id].listeNotes.Count();
 
+                // Construction de l'embed avec boutons interactifs
                 string note = Program.notesParser.json.Notes[member.Id].listeNotes.First();
                 DiscordEmbedBuilder builder = BuildEmbedNotes(member, note, page, nbTotal);
                 var previous = new DiscordButtonComponent(ButtonStyle.Primary, $"{member.Id}-{2 * page - 1}", "Précédent", false);
@@ -493,6 +497,7 @@ namespace LaGrueJaune.commands
                 await ctx.Interaction.CreateFollowupMessageAsync(reponse);
             }
 
+            // Cas où le membre n'a pas de notes
             else
             {
                 DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"<@{member.Id}> n'a pas de note ! :person_shrugging:");
@@ -512,7 +517,10 @@ namespace LaGrueJaune.commands
             }
 
             await ctx.Interaction.DeferAsync(ephemeral: false);
+
             int index = Convert.ToInt32(number);
+
+            // Suppression complète de la liste des notes
             if (index == 0)
             {
                 Program.notesParser.json.Notes.Remove(member.Id);
@@ -520,14 +528,20 @@ namespace LaGrueJaune.commands
                 DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($":broom: Toutes les notes de <@{member.Id}> ont été supprimées.");
                 await ctx.Interaction.CreateFollowupMessageAsync(builder);
             }
+
+            // Suppression d'une note spécifique
             else
             {
                 List<string> list = Program.notesParser.json.Notes[member.Id].listeNotes;
+
+                // Cas où le numéro de note est invalide
                 if (index >= list.Count)
                 {
                     DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"Numéro de note invalide.");
                     await ctx.Interaction.CreateFollowupMessageAsync(builder);
                 }
+
+                // Suppression de la note et réponse
                 else
                 {
                     list.Remove(list[index - 1]);
@@ -610,6 +624,53 @@ namespace LaGrueJaune.commands
                 DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"Les messages entrants de <#{thread.Id}> sont désormais réactivés");
                 await ctx.Interaction.CreateFollowupMessageAsync(builder);
             }
+        }
+        #endregion
+
+        #region birthday
+        [SlashCommand("majAnniv", "Récupère la liste des anniversaires du salon")]
+        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task majAnniv(InteractionContext ctx)
+        {
+            await ctx.Interaction.DeferAsync(ephemeral: true);
+            
+            if (ctx.Guild == null)
+            {
+                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
+                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
+                return;
+            }
+
+            // On récupère la liste de messages du salon en retirant le message de l'interaction
+            var listMessagesTmp = await ctx.Channel.GetMessagesAsync(13);
+            List<DiscordMessage> listMessages = listMessagesTmp.ToList();
+            listMessages.RemoveAt(0);
+            listMessages.Reverse();
+            int month = 1;
+
+            // On met à jour le fichier JSON pour chaque ligne dans chaque message
+            string dateAnniv = "";
+            foreach (DiscordMessage message in listMessages)
+            {
+                foreach (String line in message.Content.Split('\n'))
+                {
+                    // On vérifie que la ligne démarre par un entier pour ignorer les headers
+                    if (int.TryParse(line.Substring(0,1), out int value))
+                    {
+                        string[] content = line.Split(':');
+                        dateAnniv = content[0];
+                        dateAnniv += "/" + month.ToString().PadLeft(2, '0');
+                        string memberTag = content[1].Trim();
+
+                        JSONAnniversaires.MemberAnniversaire memberAnniv = new JSONAnniversaires.MemberAnniversaire();
+                        await Program.anniversairesParser.AddAnniv(memberTag, dateAnniv);
+                    }
+                }
+                month++;
+            }
+
+            DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"OK");
+            await ctx.Interaction.CreateFollowupMessageAsync(builder);
         }
         #endregion
 

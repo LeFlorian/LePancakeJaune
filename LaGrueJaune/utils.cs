@@ -3,6 +3,8 @@ using DSharpPlus.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Quartz;
+using System.Threading.Tasks;
 
 namespace LaGrueJaune
 {
@@ -28,12 +30,21 @@ namespace LaGrueJaune
         {
             int nbTotal = Program.notesParser.json.Notes[member.Id].listeNotes.Count();
             DiscordEmbedBuilder builder = Utils.BuildEmbedNotes(member, note, page, nbTotal);
-            var previous = new DiscordButtonComponent(ButtonStyle.Primary, $"{member.Id}-{2*page-1}", "Précédent", false);
-            var next = new DiscordButtonComponent(ButtonStyle.Primary, $"{member.Id}-{2*page}", "Suivant", false);
-            IEnumerable<DiscordComponent> components = new DiscordComponent[] {previous,next};
+            var previous = new DiscordButtonComponent(ButtonStyle.Primary, $"{member.Id}-{2 * page - 1}", "Précédent", false);
+            var next = new DiscordButtonComponent(ButtonStyle.Primary, $"{member.Id}-{2 * page}", "Suivant", false);
+            IEnumerable<DiscordComponent> components = new DiscordComponent[] { previous, next };
 
             return new Action<DiscordMessageBuilder>((DiscordMessageBuilder) => DiscordMessageBuilder.WithEmbed(builder).AddComponents(components));
 
+        }
+    }
+
+    // Job de bon anniversaire exécuté par trigger à 8h chaque matin
+    public class birthdayWatch : IJob
+    {
+        async Task IJob.Execute(IJobExecutionContext context)
+        {
+            await Program.wishBirthday();
         }
     }
 }
