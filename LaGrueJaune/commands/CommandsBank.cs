@@ -2,7 +2,6 @@
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
-using LibreTranslate;
 using LaGrueJaune.config;
 using Newtonsoft.Json;
 using System;
@@ -12,7 +11,6 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using static LaGrueJaune.commands.CommandsBank;
 using static LaGrueJaune.Utils;
-using LibreTranslate.Net;
 using IronPython.Hosting;
 using Microsoft.Scripting.Hosting;
 
@@ -295,7 +293,7 @@ namespace LaGrueJaune.commands
                 phrase += $"{word} ";
             }
 
-            await Program.notesParser.AddNotes(memberId, $"{phrase.Remove(phrase.Length - 1)} - {DateTime.Now.ToString()}");
+            await Program.notesParser.AddNotes(memberId, $"{phrase.Remove(phrase.Length - 1)}\n\n{DateTime.Now.ToString()}");
             int nbNotes = Program.notesParser.json.Notes[memberId].listeNotes.Count;
             
             await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
@@ -321,17 +319,7 @@ namespace LaGrueJaune.commands
                 var action = buildAction(ctx.Guild.Members.Values.Where(m => m.Id.Equals(memberId)).First(), Program.notesParser.json.Notes[memberId].listeNotes.First(), page);
 
                 await ctx.RespondAsync(action);
-
-                foreach (string note in Program.notesParser.json.Notes[memberId].listeNotes)
-                {
-                    notesTxt += $"\n{note}: {note}";
-                }
-            }
-            else
-            {
-                notesTxt = "\n:person_shrugging:";
-            }
-            //await ctx.RespondAsync($"Liste des notes sur l'utilisateur <@{memberId.ToString()}>:{notesTxt}");
+            } 
         }
 
         [Command("noteClear")]

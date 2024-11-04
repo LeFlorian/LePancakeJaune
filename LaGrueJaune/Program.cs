@@ -548,7 +548,7 @@ namespace LaGrueJaune
 
         private static async Task OnComponentInteraction(DiscordClient sender, ComponentInteractionCreateEventArgs args)
         {
-            Console.WriteLine(args.Id.Split('-')[0]);
+
             ulong userId = Convert.ToUInt64(args.Id.Split('-')[0]);
             int buttonId = Int32.Parse(args.Id.Split('-')[1]);
             

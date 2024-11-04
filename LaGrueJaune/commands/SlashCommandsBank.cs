@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Scripting.Hosting;
+using System.Threading;
 
 namespace LaGrueJaune.commands
 {
@@ -306,7 +307,7 @@ namespace LaGrueJaune.commands
                 return;
             }
 
-            await Program.notesParser.AddNotes(member.Id, $"{phrase}\n{DateTime.Now.ToString()}");
+            await Program.notesParser.AddNotes(member.Id, $"{phrase}\n\n{DateTime.Now.ToString()}");
 
             int nbNotes = Program.notesParser.json.Notes[member.Id].listeNotes.Count;
 
@@ -376,10 +377,18 @@ namespace LaGrueJaune.commands
             else
             {
                 List<string> list = Program.notesParser.json.Notes[member.Id].listeNotes;
-                list.Remove(list[index - 1]);
-                await Program.notesParser.WriteJSON();
-                DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($":broom: Note n°{number} supprimée pour <@{member.Id}>.");
-                await ctx.Interaction.CreateFollowupMessageAsync(builder);
+                if (index >= list.Count)
+                {
+                    DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"Numéro de note invalide.");
+                    await ctx.Interaction.CreateFollowupMessageAsync(builder);
+                }
+                else
+                {
+                    list.Remove(list[index - 1]);
+                    await Program.notesParser.WriteJSON();
+                    DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($":broom: Note n°{number} supprimée pour <@{member.Id}>.");
+                    await ctx.Interaction.CreateFollowupMessageAsync(builder);
+                }
             }
 
         }
@@ -456,6 +465,30 @@ namespace LaGrueJaune.commands
                 await ctx.Interaction.CreateFollowupMessageAsync(builder);
             }
         }
-        # endregion
+        #endregion
+
+        #region FunFact
+        /*
+        [SlashCommand("Funfact", "Renvoie un fait aléatoire")]
+        [SlashRequireUserPermissions(Permissions.AccessChannels)]
+        public async Task funfact(InteractionContext ctx, [Option("Texte", "Texte à traduire")] string texte)
+        {
+            await ctx.Interaction.DeferAsync(ephemeral: false);
+
+            var translator = new GoogleTranslator();
+
+            Language from = Language.English;
+            Language to = Language.French;
+
+            TranslationResult result = await translator.TranslateLiteAsync(texte, from, to);
+
+            string resultMerged = result.MergedTranslation;
+
+            DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent(resultMerged);
+            await ctx.Interaction.CreateFollowupMessageAsync(builder);
+
+        }
+        */
+        #endregion
     }
 }

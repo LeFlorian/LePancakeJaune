@@ -11,18 +11,17 @@ namespace LaGrueJaune
 
         public static DiscordEmbedBuilder BuildEmbedNotes(DiscordUser member, string note, int page, int nbTotal)
         {
-
             DiscordEmbedBuilder builder = new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Gold)
-                .WithTitle(member.Username)
-                .WithAuthor("Listes des notes")
+                .WithTitle($"Liste des notes")
+                .WithDescription($"**<@{member.Id}>** - Note n°{page}/{nbTotal}\n\n{note}")
+                .WithAuthor("Staff de La Grue Jaune")
                 //.WithDescription("Notes enregistrées")
                 .WithThumbnail(member.AvatarUrl)
-                .AddField($"Note n°{page}/{nbTotal}", note)
                 .WithFooter("La Grue Jaune", "https://cdn.discordapp.com/icons/1019524827268251690/7e079db678a2ef0764cbafef1d03ae44.webp?size=160")
                 ;
-
             return builder;
+
         }
 
         public static Action<DiscordMessageBuilder> buildAction(DiscordMember member, String note, int page)
