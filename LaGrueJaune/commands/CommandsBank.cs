@@ -147,18 +147,7 @@ namespace LaGrueJaune.commands
             }
 
 
-            var embed = new DiscordEmbedBuilder()
-            {
-                Title = "Help :",
-                Description = description,
-                Color = DiscordColor.Gold
-
-            };
-
-            var message = new DiscordMessageBuilder();
-            message.AddEmbed(embed);
-
-            await ctx.Channel.SendMessageAsync(embed: embed);
+            
         }
 
         [Command("History")]
@@ -423,6 +412,137 @@ namespace LaGrueJaune.commands
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
         }
+
+        #region Embed creations
+
+        DiscordMessage currentEditingMessage;
+
+        [Command]
+        [RequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task EmbedCreate(CommandContext ctx,
+            string title = "",
+            string description = "",
+            string hexColor = "",
+            string imageUrl = "",
+            string titleUrl = "",
+            string authorName = "",
+            string authorUrl = "",
+            string authorIconUrl = "",
+            string footerText = "",
+            string footerIconUrl = "",
+            string thumbmailUrl = ""
+            )
+        {
+            var embed = new DiscordEmbedBuilder() { Title = "Work in progress" };
+
+            DiscordMessage message = await ctx.Channel.SendMessageAsync(embed: embed);
+            currentEditingMessage = message;
+
+            EmbedModify(ctx, title, description, hexColor, imageUrl, titleUrl, authorName, authorUrl, authorIconUrl, footerText, footerIconUrl, thumbmailUrl);
+        }
+
+
+        [Command]
+        [RequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task EmbedSelect(CommandContext ctx, string messageUrl)
+        {
+            DiscordMessage message = await Program.GetMessageFromURI(messageUrl);
+            if (message == null)
+            {
+                var warningMSG = await ctx.Channel.SendMessageAsync($"Message non trouvé.");
+
+                await Task.Delay(5000);
+
+                warningMSG.DeleteAsync();
+            }
+            else
+            {
+                currentEditingMessage = message;
+            }
+        }
+
+        [Command]
+        [RequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task EmbedModify(CommandContext ctx, 
+            string title = "", 
+            string description = "", 
+            string hexColor = "",
+            string imageUrl = "",
+            string titleUrl = "",
+            string authorName = "",
+            string authorUrl = "",
+            string authorIconUrl = "",
+            string footerText = "",
+            string footerIconUrl = "",
+            string thumbmailUrl = ""
+            )
+        {
+            DiscordEmbedBuilder newEmbed = new DiscordEmbedBuilder(currentEditingMessage.Embeds[0]);
+
+            if (title != "")
+                newEmbed.WithTitle(title);
+
+            if (description != "")
+                newEmbed.WithDescription(description);
+
+            if (hexColor != "")
+                newEmbed.WithColor(new DiscordColor(hexColor));
+
+            if (newEmbed.Author == null && (authorName != "" || authorUrl != "" || authorIconUrl != ""))
+            {
+                newEmbed.WithAuthor(" ");
+            }
+
+            if (authorName != "")
+                newEmbed.WithAuthor(
+                    name: authorName,
+                    url: newEmbed.Author.Url,
+                    iconUrl: newEmbed.Author.IconUrl);
+
+            if (Program.IsValidUri(authorUrl))
+                newEmbed.WithAuthor(
+                    url: authorUrl,
+                    name: newEmbed.Author.Name,
+                    iconUrl: newEmbed.Author.IconUrl);
+
+            if (Program.IsValidUri(authorIconUrl))
+                newEmbed.WithAuthor(
+                    iconUrl: authorIconUrl,
+                    name: newEmbed.Author.Name,
+                    url: newEmbed.Author.Url);
+
+            if (newEmbed.Footer == null && (footerText != "" || footerIconUrl != ""))
+            {
+                newEmbed.WithFooter(" ");
+            }
+
+            if (footerText != "")
+                newEmbed.WithFooter(
+                    text: footerText,
+                    iconUrl: newEmbed.Footer.IconUrl);
+
+            if (Program.IsValidUri(footerIconUrl))
+                newEmbed.WithFooter(
+                    iconUrl: footerIconUrl,
+                    text: newEmbed.Footer.Text);
+
+            if (Program.IsValidUri(imageUrl))
+                newEmbed.WithImageUrl(imageUrl);
+
+
+            if (Program.IsValidUri(thumbmailUrl))
+                newEmbed.WithThumbnail(url: thumbmailUrl);
+
+            if (Program.IsValidUri(titleUrl))
+                newEmbed.WithUrl(titleUrl);
+
+            DiscordMessageBuilder message = new DiscordMessageBuilder();
+            message.AddEmbed(newEmbed);
+
+            await currentEditingMessage.ModifyAsync(message);
+        }
+
+        #endregion
     }
 
 }
