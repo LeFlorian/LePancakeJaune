@@ -37,7 +37,15 @@ namespace LaGrueJaune.config
             }
         }
 
-    public async Task AddAnniv(string memberTag, string dateAnniv)
+        public async Task resetJSON()
+        {
+            using (StreamWriter sw = new StreamWriter("anniversaires.json"))
+            {
+                await sw.WriteLineAsync(JsonConvert.SerializeObject(new Dictionary<string, JSONAnniversaires.MemberAnniversaire>(), Formatting.Indented));
+            }
+        }
+
+        public async Task AddAnniv(string memberTag, string dateAnniv)
         {
             if (json == null)
             {

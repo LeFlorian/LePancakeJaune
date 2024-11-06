@@ -129,7 +129,7 @@ namespace LaGrueJaune
                 )
                 .Build();
 
-            // Planification du job déclenché par le trigger à 8h
+            // Planification du job birthdayWatch déclenché par le trigger à 8h
             StdSchedulerFactory factory = new StdSchedulerFactory();
             IScheduler scheduler = await factory.GetScheduler();
             await scheduler.Start();
@@ -605,12 +605,11 @@ namespace LaGrueJaune
         public static Task wishBirthday()
         {
             string currentDate = DateTime.Now.ToString().Substring(0,5);
-            
-            Console.WriteLine(currentDate);
+
             foreach (KeyValuePair<string, MemberAnniversaire> memberAnniv in Program.anniversairesParser.json.Anniversaires)
             {
                 if (currentDate.Equals(memberAnniv.Value.dateAnniv)){
-                    Client.SendMessageAsync(Guild.GetChannel(config.ID_generalChannel), $"Bon anniversaire {memberAnniv.Key} !! :partying_face: :tada: ");
+                    Client.SendMessageAsync(Guild.GetChannel(config.ID_generalChannel), $"Bon anniversaire {memberAnniv.Key} ! :partying_face: :tada:");
                 }
             };
             return Task.CompletedTask;

@@ -12,6 +12,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Scripting.Hosting;
 using System.Threading;
+using static LaGrueJaune.config.JSONAnniversaires;
 
 namespace LaGrueJaune.commands
 {
@@ -642,13 +643,16 @@ namespace LaGrueJaune.commands
             }
 
             // On récupère la liste de messages du salon en retirant le message de l'interaction
-            var listMessagesTmp = await ctx.Channel.GetMessagesAsync(13);
+            var listMessagesTmp = await ctx.Guild.GetChannel(Program.config.ID_annivChannel).GetMessagesAsync(12);
             List<DiscordMessage> listMessages = listMessagesTmp.ToList();
-            listMessages.RemoveAt(0);
             listMessages.Reverse();
             int month = 1;
 
-            // On met à jour le fichier JSON pour chaque ligne dans chaque message
+            // On vide le fichier JSON du contenu présent
+            await Program.anniversairesParser.resetJSON();
+            Program.anniversairesParser.json.Anniversaires = new Dictionary<string, MemberAnniversaire>();
+
+            // On écrit le fichier JSON pour chaque ligne dans chaque message
             string dateAnniv = "";
             foreach (DiscordMessage message in listMessages)
             {
