@@ -10,7 +10,7 @@ namespace LaGrueJaune.config
 
         public async Task ReadJSON()
         {
-            using (StreamReader sr = new StreamReader("config.json"))
+            using (StreamReader sr = new StreamReader("JSON/config.json"))
             {
                 string json = await sr.ReadToEndAsync();
                 JSONConfig data = JsonConvert.DeserializeObject<JSONConfig>(json);

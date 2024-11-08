@@ -62,8 +62,7 @@ namespace LaGrueJaune.commands
 
             Program.actualPurgeMessage = await ctx.Channel.SendMessageAsync(msg);
 
-            var response = new DiscordWebhookBuilder().AddEmbed(msg.Embed);
-            await ctx.EditResponseAsync(response);
+            await ctx.DeleteResponseAsync();
         }
 
         [SlashCommand("SetUserKickable", "Set a user in purge list to be kickable or not.")]
