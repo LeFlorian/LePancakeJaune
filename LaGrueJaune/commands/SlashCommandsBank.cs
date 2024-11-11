@@ -1,18 +1,15 @@
 ﻿using DSharpPlus;
-using DSharpPlus.CommandsNext;
-using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.SlashCommands.Attributes;
 using LaGrueJaune.config;
-using static LaGrueJaune.Utils;
+using Quartz.Util;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Scripting.Hosting;
-using System.Threading;
 using static LaGrueJaune.config.JSONAnniversaires;
+using static LaGrueJaune.Utils;
 
 namespace LaGrueJaune.commands
 {
@@ -238,7 +235,7 @@ namespace LaGrueJaune.commands
 
         #region Embeds
 
-        DiscordMessage currentEditingMessage;
+        public static DiscordMessage currentEditingMessage;
 
         [SlashCommand("EmbedCreate","Make an embeded message")]
         [SlashRequireUserPermissions(Permissions.ModerateMembers)]
@@ -259,11 +256,13 @@ namespace LaGrueJaune.commands
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
 
             var embed = new DiscordEmbedBuilder() { Title = "Work in progress" };
+            if (string.IsNullOrEmpty(hexColor))
+                hexColor = "DCB454";
 
             DiscordMessage message = await ctx.Channel.SendMessageAsync(embed: embed);
             currentEditingMessage = message;
 
-            await EmbedModify(ctx, title, description, hexColor, imageUrl, titleUrl, authorName, authorUrl, authorIconUrl, footerText, footerIconUrl, thumbmailUrl);
+            await EmbedModify(ctx, title, description, hexColor, imageUrl, titleUrl, authorName, authorUrl, authorIconUrl, footerText, footerIconUrl, thumbmailUrl, true);
 
             await ctx.DeleteResponseAsync();
         }
@@ -281,80 +280,104 @@ namespace LaGrueJaune.commands
             [Option("AuthorIconUrl", "Embed author icon url")] string authorIconUrl = "",
             [Option("FooterText", "Embed footer text")] string footerText = "",
             [Option("FooterIconUrl", "Embed footer icon url")] string footerIconUrl = "",
-            [Option("ThumbmailUrl", "Embed thumbmail url")] string thumbmailUrl = ""
+            [Option("ThumbmailUrl", "Embed thumbmail url")] string thumbmailUrl = "",
+            [Option("ComeFromOtherFunction","Functionnal var, don't use.")] bool commingFromOtherFunction = false
             )
         {
+            if (!commingFromOtherFunction)
+                await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
 
-            await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
-
-            if (currentEditingMessage.Embeds.Count > 0)
+            if (currentEditingMessage != null)
             {
-                DiscordEmbedBuilder newEmbed = new DiscordEmbedBuilder(currentEditingMessage.Embeds[0]);
-
-                if (title != "")
-                    newEmbed.WithTitle(title);
-
-                if (description != "")
-                    newEmbed.WithDescription(description);
-
-                if (hexColor != "")
-                    newEmbed.WithColor(new DiscordColor(hexColor));
-
-                if (newEmbed.Author == null && (authorName != "" || authorUrl != "" || authorIconUrl != ""))
+                if (currentEditingMessage.Embeds.Count > 0)
                 {
-                    newEmbed.WithAuthor(" ");
+                    DiscordEmbedBuilder newEmbed = new DiscordEmbedBuilder(currentEditingMessage.Embeds[0]);
+
+                    Console.WriteLine(newEmbed.Title + "_" + newEmbed.Description + "_" + newEmbed.Color);
+
+
+                    if (!string.IsNullOrEmpty(title))
+                        newEmbed.WithTitle(title);
+
+                    if (!string.IsNullOrEmpty(description))
+                        newEmbed.WithDescription(description);
+
+                    if (!string.IsNullOrEmpty(hexColor))
+                    {
+                        try
+                        {
+                            newEmbed.WithColor(new DiscordColor(hexColor));
+                        }
+                        catch
+                        {
+                            newEmbed.WithColor(new DiscordColor("DCB454"));
+                        }
+                    }
+
+                    if (newEmbed.Author == null && (!string.IsNullOrEmpty(authorName) || !string.IsNullOrEmpty(authorUrl) || !string.IsNullOrEmpty(authorIconUrl)))
+                    {
+                        newEmbed.WithAuthor(" ");
+                    }
+
+                    if (!string.IsNullOrEmpty(authorName))
+                        newEmbed.WithAuthor(
+                            name: authorName,
+                            url: newEmbed.Author.Url,
+                            iconUrl: newEmbed.Author.IconUrl);
+
+                    if (Program.IsValidUri(authorUrl))
+                        newEmbed.WithAuthor(
+                            url: authorUrl,
+                            name: newEmbed.Author.Name,
+                            iconUrl: newEmbed.Author.IconUrl);
+
+                    if (Program.IsValidUri(authorIconUrl))
+                        newEmbed.WithAuthor(
+                            iconUrl: authorIconUrl,
+                            name: newEmbed.Author.Name,
+                            url: newEmbed.Author.Url);
+
+                    if (newEmbed.Footer == null && (!string.IsNullOrEmpty(footerText) || !string.IsNullOrEmpty(footerIconUrl)))
+                    {
+                        newEmbed.WithFooter(" ");
+                    }
+
+                    if (!string.IsNullOrEmpty(footerText))
+                        newEmbed.WithFooter(
+                            text: footerText,
+                            iconUrl: newEmbed.Footer.IconUrl);
+
+                    if (Program.IsValidUri(footerIconUrl))
+                        newEmbed.WithFooter(
+                            iconUrl: footerIconUrl,
+                            text: newEmbed.Footer.Text);
+
+                    if (Program.IsValidUri(imageUrl))
+                        newEmbed.WithImageUrl(imageUrl);
+
+
+                    if (Program.IsValidUri(thumbmailUrl))
+                        newEmbed.WithThumbnail(url: thumbmailUrl);
+
+                    if (Program.IsValidUri(titleUrl))
+                        newEmbed.WithUrl(titleUrl);
+
+                    DiscordMessageBuilder message = new DiscordMessageBuilder();
+                    message.AddEmbed(newEmbed);
+
+                    try
+                    {
+                        currentEditingMessage = await currentEditingMessage.ModifyAsync(message);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
                 }
-
-                if (authorName != "")
-                    newEmbed.WithAuthor(
-                        name: authorName,
-                        url: newEmbed.Author.Url,
-                        iconUrl: newEmbed.Author.IconUrl);
-
-                if (Program.IsValidUri(authorUrl))
-                    newEmbed.WithAuthor(
-                        url: authorUrl,
-                        name: newEmbed.Author.Name,
-                        iconUrl: newEmbed.Author.IconUrl);
-
-                if (Program.IsValidUri(authorIconUrl))
-                    newEmbed.WithAuthor(
-                        iconUrl: authorIconUrl,
-                        name: newEmbed.Author.Name,
-                        url: newEmbed.Author.Url);
-
-                if (newEmbed.Footer == null && (footerText != "" || footerIconUrl != ""))
-                {
-                    newEmbed.WithFooter(" ");
-                }
-
-                if (footerText != "")
-                    newEmbed.WithFooter(
-                        text: footerText,
-                        iconUrl: newEmbed.Footer.IconUrl);
-
-                if (Program.IsValidUri(footerIconUrl))
-                    newEmbed.WithFooter(
-                        iconUrl: footerIconUrl,
-                        text: newEmbed.Footer.Text);
-
-                if (Program.IsValidUri(imageUrl))
-                    newEmbed.WithImageUrl(imageUrl);
-
-
-                if (Program.IsValidUri(thumbmailUrl))
-                    newEmbed.WithThumbnail(url: thumbmailUrl);
-
-                if (Program.IsValidUri(titleUrl))
-                    newEmbed.WithUrl(titleUrl);
-
-                DiscordMessageBuilder message = new DiscordMessageBuilder();
-                message.AddEmbed(newEmbed);
-
-                await currentEditingMessage.ModifyAsync(message);
             }
 
-            await ctx.DeleteResponseAsync();
+            if (!commingFromOtherFunction)
+                await ctx.DeleteResponseAsync();
         }
 
 
@@ -368,6 +391,8 @@ namespace LaGrueJaune.commands
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
 
             DiscordMessage message = await Program.GetMessageFromURI(messageUrl);
+            Console.WriteLine(message);
+
             if (message == null)
             {
                 var warningMSG = await ctx.Channel.SendMessageAsync($"Message non trouvé.");
@@ -383,6 +408,8 @@ namespace LaGrueJaune.commands
 
 
             await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("Message sélectionné."));
+            await Task.Delay(5000);
+            await ctx.DeleteResponseAsync();
         }
 
         #endregion
