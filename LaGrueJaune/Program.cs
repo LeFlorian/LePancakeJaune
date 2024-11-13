@@ -461,11 +461,17 @@ namespace LaGrueJaune
                 return null;
             }
 
+            ulong guildId = ulong.Parse(segments[2].TrimEnd('/'));
             ulong channelId = ulong.Parse(segments[3].TrimEnd('/'));
             ulong messageId = ulong.Parse(segments[4]);
 
+            DiscordGuild localGuild = await Client.GetGuildAsync(guildId);
+            if (localGuild == null)
+            {
+                return null;
+            }
             // Récupérer le canal
-            var channel = Guild.GetChannel(channelId);
+            var channel = localGuild.GetChannel(channelId);
 
             // Si le canal/thread est toujours null, retournez null
             if (channel == null)

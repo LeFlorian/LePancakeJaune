@@ -14,7 +14,7 @@ namespace LaGrueJaune.config
 
         public async Task ReadJSON()
         {
-            using (StreamReader sr = new StreamReader("notes.json"))
+            using (StreamReader sr = new StreamReader("JSON/notes.json"))
             {
                 string reader = await sr.ReadToEndAsync();
                 Dictionary<ulong,JSONNotes.MemberNotes> data = JsonConvert.DeserializeObject<Dictionary<ulong,JSONNotes.MemberNotes>>(reader);
@@ -27,7 +27,7 @@ namespace LaGrueJaune.config
 
         public async Task WriteJSON()
         {
-            using (StreamWriter sw = new StreamWriter("Notes.json"))
+            using (StreamWriter sw = new StreamWriter("JSON/notes.json"))
             {
                 await sw.WriteLineAsync(JsonConvert.SerializeObject(json.Notes, Formatting.Indented));
             }

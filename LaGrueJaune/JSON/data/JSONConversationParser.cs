@@ -18,7 +18,7 @@ namespace LaGrueJaune.config
 
         public async Task ReadJSON()
         {
-            using (StreamReader sr = new StreamReader("conversations.json"))
+            using (StreamReader sr = new StreamReader("JSON/conversations.json"))
             {
                 string reader = await sr.ReadToEndAsync();
                 Dictionary<string,JSONConversation.MemberConversation> data = JsonConvert.DeserializeObject<Dictionary<string,JSONConversation.MemberConversation>>(reader);
@@ -31,7 +31,7 @@ namespace LaGrueJaune.config
 
         public async Task WriteJSON()
         {
-            using (StreamWriter sw = new StreamWriter("conversations.json"))
+            using (StreamWriter sw = new StreamWriter("JSON/conversations.json"))
             {
                 await sw.WriteLineAsync(JsonConvert.SerializeObject(json.Conversations, Formatting.Indented));
             }

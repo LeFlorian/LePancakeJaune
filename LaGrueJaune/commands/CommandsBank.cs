@@ -3,16 +3,11 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using LaGrueJaune.config;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Net.Http;
-using static LaGrueJaune.commands.CommandsBank;
 using static LaGrueJaune.Utils;
-using IronPython.Hosting;
-using Microsoft.Scripting.Hosting;
 
 namespace LaGrueJaune.commands
 {
