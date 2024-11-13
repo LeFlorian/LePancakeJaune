@@ -61,6 +61,7 @@ namespace LaGrueJaune.config
             {
                 JSONAnniversaires.MemberAnniversaire newAnniversaire = new JSONAnniversaires.MemberAnniversaire();
                 newAnniversaire.dateAnniv = dateAnniv;
+                newAnniversaire.ignored = false;
                 json.Anniversaires.Add(memberTag, newAnniversaire);
             }
             await WriteJSON();
@@ -72,6 +73,7 @@ namespace LaGrueJaune.config
         public class MemberAnniversaire
         {
             public string dateAnniv;
+            public bool ignored;
         }
 
         public Dictionary<string, MemberAnniversaire> Anniversaires = new Dictionary<string, MemberAnniversaire>();
