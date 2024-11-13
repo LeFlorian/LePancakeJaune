@@ -614,6 +614,10 @@ namespace LaGrueJaune
 
             foreach (KeyValuePair<string, MemberAnniversaire> memberAnniv in Program.anniversairesParser.json.Anniversaires)
             {
+                //On souhaite pas l'anniversaire de Flo parce que j'ai pas envie x)
+                if (memberAnniv.Key == "<@265525785631129600>")
+                    continue;
+
                 if (currentDate.Equals(memberAnniv.Value.dateAnniv)){
                     Client.SendMessageAsync(Guild.GetChannel(config.ID_generalChannel), $"Bon anniversaire {memberAnniv.Key} ! :partying_face: :tada:");
                 }
