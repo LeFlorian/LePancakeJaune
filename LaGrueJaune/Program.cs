@@ -646,17 +646,8 @@ namespace LaGrueJaune
 
             foreach (KeyValuePair<string, MemberAnniversaire> memberAnniv in Program.anniversairesParser.json.Anniversaires)
             {
-<<<<<<< HEAD
                 if (currentDate.Equals(memberAnniv.Value.dateAnniv) && !memberAnniv.Value.ignored){
                     Client.SendMessageAsync(Guild.GetChannel(config.ID_generalChannel), $"Bon anniversaire <@{memberAnniv.Key}> ! :partying_face: :tada:");
-=======
-                //On souhaite pas l'anniversaire de Flo parce que j'ai pas envie x)
-                if (memberAnniv.Key == "<@265525785631129600>")
-                    continue;
-
-                if (currentDate.Equals(memberAnniv.Value.dateAnniv)){
-                    Client.SendMessageAsync(Guild.GetChannel(config.ID_generalChannel), $"Bon anniversaire {memberAnniv.Key} ! :partying_face: :tada:");
->>>>>>> 1fb9695c3f717ea65e9898c76c8dc7fc1ca30cd1
                 }
             };
             return Task.CompletedTask;

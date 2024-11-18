@@ -44,18 +44,6 @@ namespace LaGrueJaune.config
                 await ReadJSON();
             }
 
-            // On vérifie si la personne appartient au serveur ou non
-            var membres = await dumpChannel.Guild.GetAllMembersAsync();
-            bool isGuildMember = false;
-            foreach (DiscordMember member in membres)
-            {
-                if (memberId.Equals(member.Id))
-                {
-                    isGuildMember = true;
-                    await dm.Channel.SendMessageAsync("Membre OK");
-                }
-            }
-
             // Calcule du hash de l'ID
             byte[] tmpHash = ASCIIEncoding.ASCII.GetBytes(memberId.ToString());
             string anonymId = System.Text.Encoding.UTF8.GetString(new MD5CryptoServiceProvider().ComputeHash(tmpHash));
@@ -92,6 +80,8 @@ namespace LaGrueJaune.config
 
             if (!threadExist)
             {
+                String initMessage = "";
+
                 // Génère un nom complet aléatoire pour faciliter la lecture
                 PersonNameGenerator personGenerator = new PersonNameGenerator();
                 string name = personGenerator.GenerateRandomFirstAndLastName();
@@ -113,7 +103,7 @@ namespace LaGrueJaune.config
                     "Les messages que tu m'envoies sont retransmis de manière complétement anonyme" +
                     " au staff de La Grue Jaune, qui pourra te répondre par mon intermédiaire.\n" +
                     "Après 7 jours d'inactivité la conversation est effacée côté staff.\n\n" +
-                    "Cette réaction :white_check_mark: indique lorsque ton message a bien été transmis");
+                    "Cette réaction :white_check_mark: indique lorsque ton message a bien été transmis.");
                 await dm.CreateReactionAsync(DiscordEmoji.FromName(client, ":white_check_mark:"));
 
                 // Sauvegarde du thread dans le json

@@ -390,13 +390,8 @@ namespace LaGrueJaune.commands
 
         [SlashCommand("SelectMessage", "Select an embeded message")]
         [SlashRequireUserPermissions(Permissions.ModerateMembers)]
-<<<<<<< HEAD
-        public async Task EmbedSelect(InteractionContext ctx,
-            [Option("Message", "The url of the embed to modify")] string messageUrl)
-=======
         public async Task SelectMessage(InteractionContext ctx, 
             [Option("Message","The url of the embed to modify")] string messageUrl)
->>>>>>> 1fb9695c3f717ea65e9898c76c8dc7fc1ca30cd1
         {
 
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
