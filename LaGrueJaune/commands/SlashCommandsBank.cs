@@ -3,10 +3,14 @@ using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.SlashCommands.Attributes;
 using LaGrueJaune.config;
+using Microsoft.Scripting.Hosting;
 using Quartz.Util;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.Linq;
+using System.Net.NetworkInformation;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using static LaGrueJaune.config.JSONAnniversaires;
 using static LaGrueJaune.Utils;
@@ -66,7 +70,7 @@ namespace LaGrueJaune.commands
         [SlashRequireUserPermissions(Permissions.Administrator)]
         public async Task SetUserKickable(
             InteractionContext ctx,
-            [Option("ID","The ID of the user in the purge list.")] long IDinList, 
+            [Option("ID", "The ID of the user in the purge list.")] long IDinList,
             [Option("Kickable", "If the user is kickable")] bool kickable)
         {
 
@@ -82,7 +86,7 @@ namespace LaGrueJaune.commands
         [SlashCommand("ViewReason", "View the reason for the user to be in the purge list")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
         public async Task ViewReason(
-            InteractionContext ctx, 
+            InteractionContext ctx,
             [Option("ID", "The ID of the user in the purge list.")] long IDinList)
         {
 
@@ -99,8 +103,8 @@ namespace LaGrueJaune.commands
         [SlashCommand("ViewReasonMember", "View the reason for the user to be in the purge list")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
         public async Task ViewReasonMember(
-            InteractionContext ctx, 
-            [Option("Member","Member in the purge list.")] DiscordUser member)
+            InteractionContext ctx,
+            [Option("Member", "Member in the purge list.")] DiscordUser member)
         {
 
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
@@ -150,8 +154,8 @@ namespace LaGrueJaune.commands
         [SlashCommand("AddHistory", "Add user in the history.")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
         public async Task AddHistory(
-            InteractionContext ctx, 
-            [Option("MessageURL","The last message of the user.")] string messageUrl)
+            InteractionContext ctx,
+            [Option("MessageURL", "The last message of the user.")] string messageUrl)
         {
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
 
@@ -197,9 +201,9 @@ namespace LaGrueJaune.commands
 
         [SlashCommand("ForceAddHistory", "Add user in the history using it's name and the date.")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
-        public async Task ForceAddHistory(InteractionContext ctx, 
-            [Option("Member","Member to force add in the history.")] DiscordUser user, 
-            [Option("Date","Date of the force adding (write jj/mm/aaaa)")] string dates)
+        public async Task ForceAddHistory(InteractionContext ctx,
+            [Option("Member", "Member to force add in the history.")] DiscordUser user,
+            [Option("Date", "Date of the force adding (write jj/mm/aaaa)")] string dates)
         {
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
 
@@ -221,7 +225,7 @@ namespace LaGrueJaune.commands
 
         [SlashCommand("fah", "Add user in the history using it's name and the date.")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
-        public async Task FAH(InteractionContext ctx, 
+        public async Task FAH(InteractionContext ctx,
             [Option("Member", "Member to force add in the history.")] DiscordUser user,
             [Option("Date", "Date of the force adding (write jj/mm/aaaa)")] string dates)
         {
@@ -237,19 +241,19 @@ namespace LaGrueJaune.commands
 
         public static DiscordMessage currentEditingMessage;
 
-        [SlashCommand("EmbedCreate","Make an embeded message")]
+        [SlashCommand("EmbedCreate", "Make an embeded message")]
         [SlashRequireUserPermissions(Permissions.ModerateMembers)]
         public async Task EmbedCreate(InteractionContext ctx,
-            [Option("Title",        "Embed title")] string title = "",
-            [Option("Description",  "Embed description")] string description = "",
-            [Option("Color",        "Embed color")] string hexColor = "",
-            [Option("ImageUrl",     "Embed image url")] string imageUrl = "",
-            [Option("TitleUrl",     "Embed title url")] string titleUrl = "",
-            [Option("AuthorName",   "Embed author name")] string authorName = "",
-            [Option("AuthorUrl",    "Embed author url")] string authorUrl = "",
-            [Option("AuthorIconUrl","Embed author icon url")] string authorIconUrl = "",
-            [Option("FooterText",   "Embed footer text")] string footerText = "",
-            [Option("FooterIconUrl","Embed footer icon url")] string footerIconUrl = "",
+            [Option("Title", "Embed title")] string title = "",
+            [Option("Description", "Embed description")] string description = "",
+            [Option("Color", "Embed color")] string hexColor = "",
+            [Option("ImageUrl", "Embed image url")] string imageUrl = "",
+            [Option("TitleUrl", "Embed title url")] string titleUrl = "",
+            [Option("AuthorName", "Embed author name")] string authorName = "",
+            [Option("AuthorUrl", "Embed author url")] string authorUrl = "",
+            [Option("AuthorIconUrl", "Embed author icon url")] string authorIconUrl = "",
+            [Option("FooterText", "Embed footer text")] string footerText = "",
+            [Option("FooterIconUrl", "Embed footer icon url")] string footerIconUrl = "",
             [Option("ThumbmailUrl", "Embed thumbmail url")] string thumbmailUrl = ""
             )
         {
@@ -281,7 +285,7 @@ namespace LaGrueJaune.commands
             [Option("FooterText", "Embed footer text")] string footerText = "",
             [Option("FooterIconUrl", "Embed footer icon url")] string footerIconUrl = "",
             [Option("ThumbmailUrl", "Embed thumbmail url")] string thumbmailUrl = "",
-            [Option("ComeFromOtherFunction","Functionnal var, don't use.")] bool commingFromOtherFunction = false
+            [Option("ComeFromOtherFunction", "Functionnal var, don't use.")] bool commingFromOtherFunction = false
             )
         {
             if (!commingFromOtherFunction)
@@ -384,8 +388,8 @@ namespace LaGrueJaune.commands
 
         [SlashCommand("EmbedSelect", "Select an embeded message")]
         [SlashRequireUserPermissions(Permissions.ModerateMembers)]
-        public async Task EmbedSelect(InteractionContext ctx, 
-            [Option("Message","The url of the embed to modify")] string messageUrl)
+        public async Task EmbedSelect(InteractionContext ctx,
+            [Option("Message", "The url of the embed to modify")] string messageUrl)
         {
 
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
@@ -445,7 +449,7 @@ namespace LaGrueJaune.commands
 
         [SlashCommand("Ban", "Ban a user and send the reason in DM.")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
-        public async Task Ban(InteractionContext ctx, [Option("User", "User to ban.")] DiscordUser user, [Option("Reason","The reason for the ban.")] string reason = "")
+        public async Task Ban(InteractionContext ctx, [Option("User", "User to ban.")] DiscordUser user, [Option("Reason", "The reason for the ban.")] string reason = "")
         {
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
 
@@ -469,7 +473,7 @@ namespace LaGrueJaune.commands
         [SlashCommand("Note", "Ajoute une note pour le membre spécifié")]
         [SlashRequireUserPermissions(Permissions.ModerateMembers)]
 
-        public async Task Note(InteractionContext ctx, 
+        public async Task Note(InteractionContext ctx,
             [Option("Membre", "Membre")] DiscordUser member,
             [Option("Texte", "Texte à ajouter en tant que note")] string phrase)
         {
@@ -655,12 +659,12 @@ namespace LaGrueJaune.commands
         #endregion
 
         #region birthday
-        [SlashCommand("majAnniv", "Récupère la liste des anniversaires du salon")]
+        [SlashCommand("annivMaj", "Récupère la liste des anniversaires du salon")]
         [SlashRequireUserPermissions(Permissions.ModerateMembers)]
-        public async Task majAnniv(InteractionContext ctx)
+        public async Task annivMaj(InteractionContext ctx)
         {
             await ctx.Interaction.DeferAsync(ephemeral: true);
-            
+
             if (ctx.Guild == null)
             {
                 DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
@@ -674,7 +678,15 @@ namespace LaGrueJaune.commands
             listMessages.Reverse();
             int month = 1;
 
-            // On vide le fichier JSON du contenu présent
+            // On vide le fichier JSON du contenu présent en gardant la valeur ignored
+            List<String> ignoredList = new List<String>();
+            foreach (KeyValuePair<string, MemberAnniversaire> memberAnniv in Program.anniversairesParser.json.Anniversaires) 
+            {
+                if (memberAnniv.Value.ignored)
+                {
+                    ignoredList.Add(memberAnniv.Key);
+                }
+            }
             await Program.anniversairesParser.resetJSON();
             Program.anniversairesParser.json.Anniversaires = new Dictionary<string, MemberAnniversaire>();
 
@@ -685,21 +697,92 @@ namespace LaGrueJaune.commands
                 foreach (String line in message.Content.Split('\n'))
                 {
                     // On vérifie que la ligne démarre par un entier pour ignorer les headers
-                    if (int.TryParse(line.Substring(0,1), out int value))
+                    if (int.TryParse(line.Substring(0, 1), out int value))
                     {
                         string[] content = line.Split(':');
                         dateAnniv = content[0];
                         dateAnniv += "/" + month.ToString().PadLeft(2, '0');
-                        string memberTag = content[1].Trim();
 
-                        JSONAnniversaires.MemberAnniversaire memberAnniv = new JSONAnniversaires.MemberAnniversaire();
-                        await Program.anniversairesParser.AddAnniv(memberTag, dateAnniv);
+                        // On extrait les IDs du message pour enregistrer les anniversaires individuellement
+                        MatchCollection matches = Regex.Matches(line, @"<@(.*?)>");
+                        foreach (Match match in matches)
+                        {
+                            bool ignored = false;
+                            String memberId = match.Groups[1].ToString();
+                            if (ignoredList.Contains(memberId))
+                            {
+                                ignored = true;
+                            }
+                            await Program.anniversairesParser.AddAnniv(memberId, dateAnniv, ignored);
+                        }
                     }
                 }
                 month++;
             }
 
             DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"OK");
+            await ctx.Interaction.CreateFollowupMessageAsync(builder);
+        }
+
+        [SlashCommand("annivFiltre", "Exclut un membre de la liste des anniversaires à souhaiter")]
+        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task annivFiltre(InteractionContext ctx, [Option("Membre", "Membre à exclure de la liste")] DiscordUser member)
+        {
+            await ctx.Interaction.DeferAsync(ephemeral: true);
+
+            if (ctx.Guild == null)
+            {
+                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
+                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
+                return;
+            }
+
+            DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"Échec: ce membre n'est pas dans la liste !");
+
+            foreach (KeyValuePair<string, MemberAnniversaire> memberAnniv in Program.anniversairesParser.json.Anniversaires)
+            {
+                if (member.Id.ToString().Equals(memberAnniv.Key))
+                {
+                    Program.anniversairesParser.json.Anniversaires[member.Id.ToString()].ignored = true;
+                    await Program.anniversairesParser.WriteJSON();
+                    builder = builder.WithContent("OK");
+                }
+            }
+           
+            await ctx.Interaction.CreateFollowupMessageAsync(builder);
+        }
+
+        [SlashCommand("annivFiltreReset", "Retire de la liste d'exclusion pour souhaiter bon anniversaire")]
+        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task annivFiltreReset(InteractionContext ctx, [Option("Membre", "Membre à ne plus exclure")] DiscordUser member = null, [Option("Tous", "Préciser \"tous\" pour un reset complet")] String all = "non")
+        {
+            await ctx.Interaction.DeferAsync(ephemeral: true);
+
+            if (ctx.Guild == null)
+            {
+                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
+                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
+                return;
+            }
+
+            DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"Il faut renseigner au moins un paramètre !");
+
+            if (member != null)
+            {
+                Program.anniversairesParser.json.Anniversaires[member.Id.ToString()].ignored = false;
+                await Program.anniversairesParser.WriteJSON();
+                builder = builder.WithContent($"OK");
+            }
+
+            if ("oui".Equals(all))
+            {
+                foreach (KeyValuePair<string, MemberAnniversaire> memberAnniv in Program.anniversairesParser.json.Anniversaires)
+                {
+                    Program.anniversairesParser.json.Anniversaires[memberAnniv.Key].ignored = false;
+                }
+                await Program.anniversairesParser.WriteJSON();
+                builder = builder.WithContent($"OK");
+            }
             await ctx.Interaction.CreateFollowupMessageAsync(builder);
         }
         #endregion

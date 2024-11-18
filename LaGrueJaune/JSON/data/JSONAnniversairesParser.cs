@@ -45,24 +45,24 @@ namespace LaGrueJaune.config
             }
         }
 
-        public async Task AddAnniv(string memberTag, string dateAnniv)
+        public async Task AddAnniv(string memberID, string dateAnniv, bool ignored)
         {
             if (json == null)
             {
                 await ReadJSON();
             }
 
-            if (json.Anniversaires.ContainsKey(memberTag))
+            if (json.Anniversaires.ContainsKey(memberID))
             {
-                json.Anniversaires[memberTag].dateAnniv = dateAnniv;
+                json.Anniversaires[memberID].dateAnniv = dateAnniv;
             }
 
             else
             {
                 JSONAnniversaires.MemberAnniversaire newAnniversaire = new JSONAnniversaires.MemberAnniversaire();
                 newAnniversaire.dateAnniv = dateAnniv;
-                newAnniversaire.ignored = false;
-                json.Anniversaires.Add(memberTag, newAnniversaire);
+                newAnniversaire.ignored = ignored;
+                json.Anniversaires.Add(memberID, newAnniversaire);
             }
             await WriteJSON();
         }

@@ -17,6 +17,8 @@ using System.Text;
 using System.Threading.Tasks;
 using static LaGrueJaune.Utils;
 using static LaGrueJaune.config.JSONAnniversaires;
+using System.Security.Policy;
+using System.Diagnostics.Metrics;
 
 namespace LaGrueJaune
 {
@@ -614,8 +616,8 @@ namespace LaGrueJaune
 
             foreach (KeyValuePair<string, MemberAnniversaire> memberAnniv in Program.anniversairesParser.json.Anniversaires)
             {
-                if (currentDate.Equals(memberAnniv.Value.dateAnniv)){
-                    Client.SendMessageAsync(Guild.GetChannel(config.ID_generalChannel), $"Bon anniversaire {memberAnniv.Key} ! :partying_face: :tada:");
+                if (currentDate.Equals(memberAnniv.Value.dateAnniv) && !memberAnniv.Value.ignored){
+                    Client.SendMessageAsync(Guild.GetChannel(config.ID_generalChannel), $"Bon anniversaire <@{memberAnniv.Key}> ! :partying_face: :tada:");
                 }
             };
             return Task.CompletedTask;

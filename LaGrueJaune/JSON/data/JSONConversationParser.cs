@@ -37,19 +37,31 @@ namespace LaGrueJaune.config
             }
         }
 
-        public async Task privateConversation(ulong memberID, DiscordMessage dm, DiscordChannel dumpChannel, DiscordClient client)
+        public async Task privateConversation(ulong memberId, DiscordMessage dm, DiscordChannel dumpChannel, DiscordClient client)
         {
             if (json == null)
             {
                 await ReadJSON();
             }
 
+            // On vérifie si la personne appartient au serveur ou non
+            var membres = await dumpChannel.Guild.GetAllMembersAsync();
+            bool isGuildMember = false;
+            foreach (DiscordMember member in membres)
+            {
+                if (memberId.Equals(member.Id))
+                {
+                    isGuildMember = true;
+                    await dm.Channel.SendMessageAsync("Membre OK");
+                }
+            }
+
             // Calcule du hash de l'ID
-            byte[] tmpHash = ASCIIEncoding.ASCII.GetBytes(memberID.ToString());
+            byte[] tmpHash = ASCIIEncoding.ASCII.GetBytes(memberId.ToString());
             string anonymId = System.Text.Encoding.UTF8.GetString(new MD5CryptoServiceProvider().ComputeHash(tmpHash));
 
             // On vérifie si le membre est à ignorer
-            if (json.Conversations.Keys.Contains(anonymId) &&  "ignoré".Equals(json.Conversations[anonymId].statut))
+            if (json.Conversations.Keys.Contains(anonymId) && "ignoré".Equals(json.Conversations[anonymId].statut))
             {
                 await dm.CreateReactionAsync(DiscordEmoji.FromName(client, ":x:"));
                 return;
