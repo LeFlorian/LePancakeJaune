@@ -695,7 +695,7 @@ namespace LaGrueJaune.commands
         [SlashRequireUserPermissions(Permissions.ModerateMembers)]
         public async Task annivMaj(InteractionContext ctx)
         {
-            await ctx.Interaction.DeferAsync(ephemeral: true);
+            await ctx.Interaction.DeferAsync(ephemeral: false);
 
             if (ctx.Guild == null)
             {
@@ -760,7 +760,7 @@ namespace LaGrueJaune.commands
         [SlashRequireUserPermissions(Permissions.ModerateMembers)]
         public async Task annivFiltre(InteractionContext ctx, [Option("Membre", "Membre à exclure de la liste")] DiscordUser member)
         {
-            await ctx.Interaction.DeferAsync(ephemeral: true);
+            await ctx.Interaction.DeferAsync(ephemeral: false);
 
             if (ctx.Guild == null)
             {
@@ -788,7 +788,7 @@ namespace LaGrueJaune.commands
         [SlashRequireUserPermissions(Permissions.ModerateMembers)]
         public async Task annivFiltreReset(InteractionContext ctx, [Option("Membre", "Membre à ne plus exclure")] DiscordUser member = null, [Option("Tous", "Préciser \"oui\" pour un reset complet")] String all = "non")
         {
-            await ctx.Interaction.DeferAsync(ephemeral: true);
+            await ctx.Interaction.DeferAsync(ephemeral: false);
 
             if (ctx.Guild == null)
             {
