@@ -777,7 +777,7 @@ namespace LaGrueJaune.commands
                 {
                     Program.anniversairesParser.json.Anniversaires[member.Id.ToString()].ignored = true;
                     await Program.anniversairesParser.WriteJSON();
-                    builder = builder.WithContent("OK");
+                    builder = builder.WithContent($"<@{member.Id}> a été ajouté à la liste d'exclusion.");
                 }
             }
            
@@ -786,7 +786,7 @@ namespace LaGrueJaune.commands
 
         [SlashCommand("annivFiltreReset", "Retire de la liste d'exclusion pour souhaiter bon anniversaire")]
         [SlashRequireUserPermissions(Permissions.ModerateMembers)]
-        public async Task annivFiltreReset(InteractionContext ctx, [Option("Membre", "Membre à ne plus exclure")] DiscordUser member = null, [Option("Tous", "Préciser \"tous\" pour un reset complet")] String all = "non")
+        public async Task annivFiltreReset(InteractionContext ctx, [Option("Membre", "Membre à ne plus exclure")] DiscordUser member = null, [Option("Tous", "Préciser \"oui\" pour un reset complet")] String all = "non")
         {
             await ctx.Interaction.DeferAsync(ephemeral: true);
 
@@ -803,7 +803,7 @@ namespace LaGrueJaune.commands
             {
                 Program.anniversairesParser.json.Anniversaires[member.Id.ToString()].ignored = false;
                 await Program.anniversairesParser.WriteJSON();
-                builder = builder.WithContent($"OK");
+                builder = builder.WithContent($"<@{member.Id}> a été retiré de la liste d'exclusion.");
             }
 
             if ("oui".Equals(all))
@@ -813,7 +813,7 @@ namespace LaGrueJaune.commands
                     Program.anniversairesParser.json.Anniversaires[memberAnniv.Key].ignored = false;
                 }
                 await Program.anniversairesParser.WriteJSON();
-                builder = builder.WithContent($"OK");
+                builder = builder.WithContent($"Toutes les personnes ont été retirées de la liste d'exclusion");
             }
             await ctx.Interaction.CreateFollowupMessageAsync(builder);
         }
