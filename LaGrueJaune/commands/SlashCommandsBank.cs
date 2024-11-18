@@ -423,22 +423,23 @@ namespace LaGrueJaune.commands
             [Option("Style","Button style")] ButtonStyle bs = ButtonStyle.Primary,
             [Option("Label","Button text")] string label = "",
             [Option("Status","Is the button is active or not")] bool active = true,
-            [Option("LinkedFunction","Function of the button when pressed")] string function = "",
+            [Option("LinkedFunction","Function of the button when pressed")] ButtonFunction function = ButtonFunction.Null,
             [Option("Role","Role to assign when pressed the button")] DiscordRole role = default)
         {
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
             DiscordMessageBuilder message = new DiscordMessageBuilder(currentEditingMessage);
 
+
             message.AddComponents(new DiscordComponent[]
             {
                 new DiscordButtonComponent(
                     bs, 
-                    $"{currentEditingMessage.Id}:{function}:{role}",
+                    $"{function}:{role.Id}",
                     label, 
                     !active)
             });
-
-            await currentEditingMessage.ModifyAsync(message);
+            if (currentEditingMessage.Author == Program.Client.CurrentUser)
+                await currentEditingMessage.ModifyAsync(message);
 
             await ctx.DeleteResponseAsync();
         }
