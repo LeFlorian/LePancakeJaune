@@ -14,11 +14,14 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using static LaGrueJaune.config.JSONAnniversaires;
 using static LaGrueJaune.Utils;
+using static Microsoft.Scripting.Hosting.Shell.ConsoleHostOptions;
 
 namespace LaGrueJaune.commands
 {
     public class SlashCommandsBank : ApplicationCommandModule
     {
+        public static DiscordMessage currentEditingMessage;
+
         #region Debug
         [SlashCommand("Template", "Command template: Do nothing.")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
@@ -239,7 +242,6 @@ namespace LaGrueJaune.commands
 
         #region Embeds
 
-        public static DiscordMessage currentEditingMessage;
 
         [SlashCommand("EmbedCreate", "Make an embeded message")]
         [SlashRequireUserPermissions(Permissions.ModerateMembers)]
@@ -386,10 +388,15 @@ namespace LaGrueJaune.commands
 
 
 
-        [SlashCommand("EmbedSelect", "Select an embeded message")]
+        [SlashCommand("SelectMessage", "Select an embeded message")]
         [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+<<<<<<< HEAD
         public async Task EmbedSelect(InteractionContext ctx,
             [Option("Message", "The url of the embed to modify")] string messageUrl)
+=======
+        public async Task SelectMessage(InteractionContext ctx, 
+            [Option("Message","The url of the embed to modify")] string messageUrl)
+>>>>>>> 1fb9695c3f717ea65e9898c76c8dc7fc1ca30cd1
         {
 
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
@@ -413,6 +420,36 @@ namespace LaGrueJaune.commands
 
             await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("Message sélectionné."));
             await Task.Delay(5000);
+            await ctx.DeleteResponseAsync();
+        }
+
+        #endregion
+
+        #region Buttons
+        [SlashCommand("ButtonAdd","Add a button to a selected message")]
+        [SlashRequireUserPermissions(Permissions.Administrator)]
+        public async Task ButtonAdd(InteractionContext ctx,
+            [Option("Style","Button style")] ButtonStyle bs = ButtonStyle.Primary,
+            [Option("Label","Button text")] string label = "",
+            [Option("Status","Is the button is active or not")] bool active = true,
+            [Option("LinkedFunction","Function of the button when pressed")] ButtonFunction function = ButtonFunction.Null,
+            [Option("Role","Role to assign when pressed the button")] DiscordRole role = default)
+        {
+            await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+            DiscordMessageBuilder message = new DiscordMessageBuilder(currentEditingMessage);
+
+
+            message.AddComponents(new DiscordComponent[]
+            {
+                new DiscordButtonComponent(
+                    bs, 
+                    $"{function}:{role.Id}",
+                    label, 
+                    !active)
+            });
+            if (currentEditingMessage.Author == Program.Client.CurrentUser)
+                await currentEditingMessage.ModifyAsync(message);
+
             await ctx.DeleteResponseAsync();
         }
 

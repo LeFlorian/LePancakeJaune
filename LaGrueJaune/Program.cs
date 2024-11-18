@@ -22,6 +22,14 @@ using System.Diagnostics.Metrics;
 
 namespace LaGrueJaune
 {
+    public enum ButtonFunction
+    {
+        [ChoiceName("Null")]
+        Null,
+        [ChoiceName("AddRole")]
+        AddRole
+    }
+
     internal class Program
     {
         public static DiscordGuild Guild;
@@ -91,7 +99,6 @@ namespace LaGrueJaune
             Client.ScheduledGuildEventUserRemoved += OnUserLeaveEvent;
             Client.ScheduledGuildEventCompleted += OnEventCompleted;
             Client.UnknownEvent += UnknownEvent;
-            Client.ComponentInteractionCreated += OnComponentInteraction;
 
             #endregion
 
@@ -181,6 +188,8 @@ namespace LaGrueJaune
 
         private static async Task OnButtonInteractionCreated(DiscordClient sender, ComponentInteractionCreateEventArgs args)
         {
+            #region Purge
+
             DiscordInteractionResponseBuilder dir = null;
 
             switch (args.Interaction.Data.CustomId)
@@ -205,12 +214,59 @@ namespace LaGrueJaune
                     await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage, dir);
 
                     break;
-
-                default:
-                    dir = new DiscordInteractionResponseBuilder(new DiscordMessageBuilder(args.Message));
-                    await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,dir);
-                    break;
             }
+
+            #endregion
+
+            #region Notes
+            try
+            {
+                ulong userId = Convert.ToUInt64(args.Id.Split('-')[0]);
+                int buttonId = Int32.Parse(args.Id.Split('-')[1]);
+
+                List<string> list = Program.notesParser.json.Notes[userId].listeNotes;
+
+                if (buttonId.Equals(1))
+                {
+                    return;
+                }
+                // Page suivante
+                else if (buttonId % 2 == 0 && buttonId / 2 < list.Count)
+                {
+                    var action = buildAction(args.Guild.Members.Values.Where(m => m.Id.Equals(userId)).First(), list[buttonId / 2], buttonId / 2 + 1);
+                    await args.Message.ModifyAsync(action);
+                }
+                // Page précédente
+                else if (buttonId % 2 != 0 && buttonId >= 3)
+                {
+                    var action = buildAction(args.Guild.Members.Values.Where(m => m.Id.Equals(userId)).First(), list[(buttonId - 1) / 2 - 1], (buttonId - 1) / 2);
+                    await args.Message.ModifyAsync(action);
+                }
+            }
+            catch
+            {
+
+            }
+            #endregion
+
+            #region Other Buttons
+            string[] buttonInfo = args.Interaction.Data.CustomId.Split(':');
+
+            DiscordMessage linkedMessage = args.Message;
+            string linkedFunction = buttonInfo[0];
+            DiscordRole linkedRole = args.Guild.GetRole(ulong.Parse(buttonInfo[1]));
+
+            
+            switch (linkedFunction)
+            {
+                case "AddRole":
+                    AddRoleToSelfUser(sender,args,linkedRole);
+                    break;
+
+            }
+
+            await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,new DiscordInteractionResponseBuilder().WithContent($"Fonction: {linkedFunction}\nRole: {linkedRole}"));
+            #endregion
         }
 
         //EVENT JOIN
@@ -574,32 +630,6 @@ namespace LaGrueJaune
             await historyParser.WriteJSON();
         }
 
-        private static async Task OnComponentInteraction(DiscordClient sender, ComponentInteractionCreateEventArgs args)
-        {
-
-            ulong userId = Convert.ToUInt64(args.Id.Split('-')[0]);
-            int buttonId = Int32.Parse(args.Id.Split('-')[1]);
-            
-            List<string> list = Program.notesParser.json.Notes[userId].listeNotes;
-
-            if (buttonId.Equals(1))
-            {
-                return;
-            }
-            // Page suivante
-            else if (buttonId % 2 == 0 && buttonId / 2 < list.Count)
-            {
-                var action = buildAction(args.Guild.Members.Values.Where(m => m.Id.Equals(userId)).First(), list[buttonId / 2], buttonId / 2 + 1);
-                await args.Message.ModifyAsync(action);
-            }
-            // Page précédente
-            else if (buttonId % 2 != 0 && buttonId >= 3)
-            {
-                var action = buildAction(args.Guild.Members.Values.Where(m => m.Id.Equals(userId)).First(), list[(buttonId - 1) / 2 - 1], (buttonId - 1) / 2);
-                await args.Message.ModifyAsync(action);
-            }
-        }
-
         public static bool IsValidUri(string uriString)
         {
             if (string.IsNullOrWhiteSpace(uriString))
@@ -616,12 +646,30 @@ namespace LaGrueJaune
 
             foreach (KeyValuePair<string, MemberAnniversaire> memberAnniv in Program.anniversairesParser.json.Anniversaires)
             {
+<<<<<<< HEAD
                 if (currentDate.Equals(memberAnniv.Value.dateAnniv) && !memberAnniv.Value.ignored){
                     Client.SendMessageAsync(Guild.GetChannel(config.ID_generalChannel), $"Bon anniversaire <@{memberAnniv.Key}> ! :partying_face: :tada:");
+=======
+                //On souhaite pas l'anniversaire de Flo parce que j'ai pas envie x)
+                if (memberAnniv.Key == "<@265525785631129600>")
+                    continue;
+
+                if (currentDate.Equals(memberAnniv.Value.dateAnniv)){
+                    Client.SendMessageAsync(Guild.GetChannel(config.ID_generalChannel), $"Bon anniversaire {memberAnniv.Key} ! :partying_face: :tada:");
+>>>>>>> 1fb9695c3f717ea65e9898c76c8dc7fc1ca30cd1
                 }
             };
             return Task.CompletedTask;
         }
+
+        #region Buttons functions
+        public static async Task AddRoleToSelfUser(DiscordClient sender, ComponentInteractionCreateEventArgs args, DiscordRole role)
+        {
+            DiscordMember member = await args.Guild.GetMemberAsync(args.User.Id);
+            await member.GrantRoleAsync(role);
+        }
+
+        #endregion
         #endregion
     }
 }
