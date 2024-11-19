@@ -503,7 +503,7 @@ namespace LaGrueJaune.commands
 
         #region Notes
         [SlashCommand("Note", "Ajoute une note pour le membre spécifié")]
-        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        [SlashCommandPermissions(Permissions.ModerateMembers)]
 
         public async Task Note(InteractionContext ctx,
             [Option("Membre", "Membre")] DiscordUser member,
@@ -530,7 +530,7 @@ namespace LaGrueJaune.commands
         }
 
         [SlashCommand("NoteList", "Affiche la liste des notes du membre spécifié")]
-        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        [SlashCommandPermissions(Permissions.ModerateMembers)]
         public async Task NoteList(InteractionContext ctx, [Option("Membre", "Membre")] DiscordUser member)
         {
             if (ctx.Guild == null)
@@ -569,7 +569,7 @@ namespace LaGrueJaune.commands
         }
 
         [SlashCommand("NoteClear", "Supprime la note du membre spécifié ou toute sa liste")]
-        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        [SlashCommandPermissions(Permissions.ModerateMembers)]
         public async Task noteClear(InteractionContext ctx, [Option("Membre", "Membre")] DiscordUser member, [Option("Note", "Numéro de note à supprimer, 0 pour toutes")] string number)
         {
             if (ctx.Guild == null)
@@ -620,7 +620,7 @@ namespace LaGrueJaune.commands
 
         #region Conversations
         [SlashCommand("convClear", "Supprime le fil anonyme spécifié")]
-        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        [SlashCommandPermissions(Permissions.ModerateMembers)]
 
         public async Task convClear(InteractionContext ctx, [Option("Fil", "Fil à supprimer")] DiscordChannel thread)
         {
@@ -653,7 +653,7 @@ namespace LaGrueJaune.commands
         }
 
         [SlashCommand("convIgnore", "Ignore les nouveaux message entrants du fil anonyme spécifiée")]
-        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        [SlashCommandPermissions(Permissions.ModerateMembers)]
         public async Task convIgnore(InteractionContext ctx, [Option("Fil", "Fil à ignorer")] DiscordChannel thread, [Option("Annuler", "Mettre oui pour réactiver les messages entrants du thread")] string cancel = "non")
         {
             if (ctx.Guild == null)
@@ -692,7 +692,7 @@ namespace LaGrueJaune.commands
 
         #region birthday
         [SlashCommand("annivMaj", "Récupère la liste des anniversaires du salon")]
-        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        [SlashCommandPermissions(Permissions.ModerateMembers)]
         public async Task annivMaj(InteractionContext ctx)
         {
             await ctx.Interaction.DeferAsync(ephemeral: false);
@@ -757,7 +757,7 @@ namespace LaGrueJaune.commands
         }
 
         [SlashCommand("annivFiltre", "Exclut un membre de la liste des anniversaires à souhaiter")]
-        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        [SlashCommandPermissions(Permissions.ModerateMembers)]
         public async Task annivFiltre(InteractionContext ctx, [Option("Membre", "Membre à exclure de la liste")] DiscordUser member)
         {
             await ctx.Interaction.DeferAsync(ephemeral: false);
@@ -784,8 +784,82 @@ namespace LaGrueJaune.commands
             await ctx.Interaction.CreateFollowupMessageAsync(builder);
         }
 
+        [SlashCommand("bonAnnivOff", "Le bot ne me souhaitera pas bon anniversaire")]
+        [SlashCommandPermissions(Permissions.AccessChannels)]
+        public async Task annivFiltreOn(InteractionContext ctx)
+        {
+            await ctx.Interaction.DeferAsync(ephemeral: true);
+
+            if (ctx.Guild == null)
+            {
+                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
+                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
+                return;
+            }
+
+            DiscordUser member = ctx.User;
+
+            DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"Échec: Vous n'êtes pas listé dans <#{Program.config.ID_annivChannel}>!");
+
+            foreach (KeyValuePair<string, MemberAnniversaire> memberAnniv in Program.anniversairesParser.json.Anniversaires)
+            {
+                if (member.Id.ToString().Equals(memberAnniv.Key))
+                {
+                    if (Program.anniversairesParser.json.Anniversaires[member.Id.ToString()].ignored == true)
+                    {
+                        builder = builder.WithContent($"Vous êtes déjà exclu des anniversaires à souhaiter !");
+                    }
+                    else
+                    {
+                        Program.anniversairesParser.json.Anniversaires[member.Id.ToString()].ignored = true;
+                        await Program.anniversairesParser.WriteJSON();
+                        builder = builder.WithContent($"Je ne vous souhaitera plus bon anniversaire.");
+                    }
+                }
+            }
+
+            await ctx.Interaction.CreateFollowupMessageAsync(builder);
+        }
+
+        [SlashCommand("bonAnnivOn", "Le bot me souhaitera bon anniversaire")]
+        [SlashCommandPermissions(Permissions.AccessChannels)]
+        public async Task annivFiltreOff(InteractionContext ctx)
+        {
+            await ctx.Interaction.DeferAsync(ephemeral: true);
+
+            if (ctx.Guild == null)
+            {
+                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
+                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
+                return;
+            }
+
+            DiscordUser member = ctx.User;
+
+            DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"Échec: Vous n'êtes pas listé dans <#{Program.config.ID_annivChannel}>!");
+
+            foreach (KeyValuePair<string, MemberAnniversaire> memberAnniv in Program.anniversairesParser.json.Anniversaires)
+            {
+                if (member.Id.ToString().Equals(memberAnniv.Key))
+                {
+                    if (Program.anniversairesParser.json.Anniversaires[member.Id.ToString()].ignored == false)
+                    {
+                        builder = builder.WithContent($"Vous faites déjà parti des anniversaires à souhaiter !");
+                    }
+                    else
+                    {
+                        Program.anniversairesParser.json.Anniversaires[member.Id.ToString()].ignored = false;
+                        await Program.anniversairesParser.WriteJSON();
+                        builder = builder.WithContent("Je vous souhaiterais bon anniversaire.");
+                    }
+                }
+            }
+
+            await ctx.Interaction.CreateFollowupMessageAsync(builder);
+        }
+
         [SlashCommand("annivFiltreReset", "Retire de la liste d'exclusion pour souhaiter bon anniversaire")]
-        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        [SlashCommandPermissions(Permissions.ModerateMembers)]
         public async Task annivFiltreReset(InteractionContext ctx, [Option("Membre", "Membre à ne plus exclure")] DiscordUser member = null, [Option("Tous", "Préciser \"oui\" pour un reset complet")] String all = "non")
         {
             await ctx.Interaction.DeferAsync(ephemeral: false);
