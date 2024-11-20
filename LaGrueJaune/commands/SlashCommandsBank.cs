@@ -1,9 +1,10 @@
-﻿using DSharpPlus;
+using DSharpPlus;
 using DSharpPlus.Entities;
+using DSharpPlus.EventArgs;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.SlashCommands.Attributes;
 using LaGrueJaune.config;
-using Microsoft.Scripting.Hosting;
+using Microsoft.Scripting.Generation;
 using Quartz.Util;
 using System;
 using System.Collections.Generic;
@@ -270,6 +271,8 @@ namespace LaGrueJaune.commands
 
             await EmbedModify(ctx, title, description, hexColor, imageUrl, titleUrl, authorName, authorUrl, authorIconUrl, footerText, footerIconUrl, thumbmailUrl, true);
 
+            await SelectMessage(ctx,currentEditingMessage.JumpLink.OriginalString,true);
+
             await ctx.DeleteResponseAsync();
         }
 
@@ -390,11 +393,12 @@ namespace LaGrueJaune.commands
 
         [SlashCommand("SelectMessage", "Select an embeded message")]
         [SlashRequireUserPermissions(Permissions.ModerateMembers)]
-        public async Task SelectMessage(InteractionContext ctx, 
-            [Option("Message","The url of the embed to modify")] string messageUrl)
+        public async Task SelectMessage(InteractionContext ctx,
+            [Option("Message", "The url of the embed to modify")] string messageUrl,
+            [Option("Force","Do not use")] bool forceResponse = false)
         {
-
-            await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+            if (!forceResponse)
+                await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
 
             DiscordMessage message = await Program.GetMessageFromURI(messageUrl);
             Console.WriteLine(message);
@@ -421,31 +425,91 @@ namespace LaGrueJaune.commands
         #endregion
 
         #region Buttons
-        [SlashCommand("ButtonAdd","Add a button to a selected message")]
+        [SlashCommand("ButtonAdd", "Add a button to a selected message")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
         public async Task ButtonAdd(InteractionContext ctx,
-            [Option("Style","Button style")] ButtonStyle bs = ButtonStyle.Primary,
-            [Option("Label","Button text")] string label = "",
-            [Option("Status","Is the button is active or not")] bool active = true,
-            [Option("LinkedFunction","Function of the button when pressed")] ButtonFunction function = ButtonFunction.Null,
-            [Option("Role","Role to assign when pressed the button")] DiscordRole role = default)
+            [Option("Style", "Button style")] ButtonStyle bs = ButtonStyle.Primary,
+            [Option("Label", "Button text")] string label = "",
+            [Option("Status", "Is the button is active or not")] bool active = true,
+            [Option("LinkedFunction", "Function of the button when pressed")] ButtonFunction function = ButtonFunction.Null,
+            [Option("Role", "Role to assign when pressed the button")] DiscordRole role = default)
         {
+            if (currentEditingMessage == null)
+            {
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
+                    new DiscordInteractionResponseBuilder()
+                    {
+                        IsEphemeral = true,
+                        Content = "Pas de messages sélectionnés"
+                    });
+                return; // On quitte la fonction pour éviter une erreur
+            }
+
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
             DiscordMessageBuilder message = new DiscordMessageBuilder(currentEditingMessage);
 
+            // Récupération et regroupement des composants existants
+            var currentComponents = new List<DiscordComponent>();
 
-            message.AddComponents(new DiscordComponent[]
+            foreach (var row in currentEditingMessage.Components)
             {
-                new DiscordButtonComponent(
-                    bs, 
-                    $"{function}:{role.Id}",
-                    label, 
-                    !active)
-            });
-            if (currentEditingMessage.Author == Program.Client.CurrentUser)
-                await currentEditingMessage.ModifyAsync(message);
+                if (row.Type == ComponentType.ActionRow)
+                {
+                    DiscordActionRowComponent ar = (DiscordActionRowComponent)row;
 
-            await ctx.DeleteResponseAsync();
+                    currentComponents.AddRange(ar.Components);
+                }
+            }
+
+            Console.WriteLine(currentComponents.Count);
+            foreach (var comp in currentComponents)
+                Console.WriteLine(comp.ToString());
+
+            // Création du bouton
+            var newButton = new DiscordButtonComponent(
+                bs,
+                $"{Guid.NewGuid()}:{function}:{role.Id}", // ID du bouton
+                label,
+                !active // Disabled ou non
+            );
+
+            currentComponents.Add(newButton);
+            message.AddComponents(currentComponents);
+
+            /*
+            // Organisation des composants en lignes
+            var actionRows = new List<DiscordActionRowComponent>();
+            foreach (var chunk in Utils.Chunk(currentComponents, 5))
+            {
+                var actionRow = new DiscordActionRowComponent(chunk);
+                actionRows.Add(actionRow); // Ajoute chaque ligne complète à la liste
+            }
+
+            // Ajoute les lignes au message
+            message.ClearComponents(); // Nettoie les anciens composants
+            foreach (var actionRow in actionRows)
+            {
+                message.AddComponents(actionRow); // Ajoute chaque ligne complète
+            }*/
+
+            Console.WriteLine("End : "+message.Components.Count);
+
+
+            try
+            {
+                // Modification du message
+                currentEditingMessage = await currentEditingMessage.ModifyAsync(message);
+
+                await ctx.DeleteResponseAsync(); // Supprime la réponse d'attente
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Erreur lors de la modification du message : {e}");
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder()
+                    .WithContent("Une erreur est survenue lors de la modification du message."));
+                await Task.Delay(5000);
+                await ctx.DeleteResponseAsync();
+            }
         }
 
         #endregion
@@ -695,7 +759,7 @@ namespace LaGrueJaune.commands
         [SlashCommandPermissions(Permissions.ModerateMembers)]
         public async Task annivMaj(InteractionContext ctx)
         {
-            await ctx.Interaction.DeferAsync(ephemeral: false);
+            await ctx.Interaction.DeferAsync(ephemeral: true);
 
             if (ctx.Guild == null)
             {
@@ -760,7 +824,7 @@ namespace LaGrueJaune.commands
         [SlashCommandPermissions(Permissions.ModerateMembers)]
         public async Task annivFiltre(InteractionContext ctx, [Option("Membre", "Membre à exclure de la liste")] DiscordUser member)
         {
-            await ctx.Interaction.DeferAsync(ephemeral: false);
+            await ctx.Interaction.DeferAsync(ephemeral: true);
 
             if (ctx.Guild == null)
             {
@@ -813,7 +877,7 @@ namespace LaGrueJaune.commands
                     {
                         Program.anniversairesParser.json.Anniversaires[member.Id.ToString()].ignored = true;
                         await Program.anniversairesParser.WriteJSON();
-                        builder = builder.WithContent($"Je ne vous souhaitera plus bon anniversaire.");
+                        builder = builder.WithContent($"Je ne vous souhaiterai plus bon anniversaire.");
                     }
                 }
             }
@@ -915,6 +979,40 @@ namespace LaGrueJaune.commands
 
         }
         */
+        #endregion
+
+        #region Roles
+        
+        [SlashCommandGroup("Roles", "Gestion des rôles et assignation")]
+        public class Roles : ApplicationCommandModule
+        {
+            [SlashCommand("AddRoleIncompatibility", "Ajoute une incompatibilité de rôle quand la fonction 'AddRole' est invoké")]
+            [SlashRequireUserPermissions(Permissions.Administrator)]
+            public async Task AddRoleIncompatibility(InteractionContext ctx,
+                [Option("Role_A","Premier rôle")] DiscordRole roleA = default,
+                [Option("Role_B", "Deuxième rôle")] DiscordRole roleB = default)
+            {
+                await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+
+                await Program.rolesParser.AddIncompatibility(roleA.Id, roleB.Id);
+
+                await ctx.DeleteResponseAsync();
+            }
+
+            [SlashCommand("RemoveRoleIncompatibility", "Retire une incompatibilité de rôle.")]
+            [SlashRequireUserPermissions(Permissions.Administrator)]
+            public async Task RemoveRoleIncompatibility(InteractionContext ctx,
+                [Option("Role_A", "Premier rôle")] DiscordRole roleA = default,
+                [Option("Role_B", "Deuxième rôle")] DiscordRole roleB = default)
+            {
+                await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+
+                await Program.rolesParser.RemoveIncompatibility(roleA.Id, roleB.Id);
+
+                await ctx.DeleteResponseAsync();
+            }
+        }
+        
         #endregion
     }
 }

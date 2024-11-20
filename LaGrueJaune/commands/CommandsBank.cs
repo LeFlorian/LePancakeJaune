@@ -539,6 +539,22 @@ namespace LaGrueJaune.commands
 
         #endregion
 
+        #region Roles
+
+        [Command("ARI")]
+        [RequireUserPermissions(Permissions.Administrator)]
+        public async Task ARI(CommandContext ctx, DiscordRole A, DiscordRole B)
+        {
+            await Program.rolesParser.AddIncompatibility(A.Id, B.Id);
+        }
+
+        [Command("RRI")]
+        [RequireUserPermissions(Permissions.Administrator)]
+        public async Task RRI(CommandContext ctx, DiscordRole A, DiscordRole B)
+        {
+            await Program.rolesParser.RemoveIncompatibility(A.Id, B.Id);
+        }
+        #endregion
     }
 
 }

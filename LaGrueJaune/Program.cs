@@ -44,6 +44,7 @@ namespace LaGrueJaune
         public static JSONNotesParser notesParser;
         public static JSONConversationParser conversationParser;
         public static JSONAnniversairesParser anniversairesParser;
+        public static JSONRolesParser rolesParser;
         public static JSONHistory userToPurge;
 
         public static int purgeListPageIndex = 1;
@@ -69,6 +70,9 @@ namespace LaGrueJaune
             await conversationParser.ReadJSON();
             anniversairesParser = new JSONAnniversairesParser();
             await anniversairesParser.ReadJSON();
+            rolesParser = new JSONRolesParser();
+            await rolesParser.ReadJSON();
+
             #endregion
 
             #region Client setup
@@ -253,14 +257,15 @@ namespace LaGrueJaune
             string[] buttonInfo = args.Interaction.Data.CustomId.Split(':');
 
             DiscordMessage linkedMessage = args.Message;
-            string linkedFunction = buttonInfo[0];
-            DiscordRole linkedRole = args.Guild.GetRole(ulong.Parse(buttonInfo[1]));
+            Enum.TryParse(buttonInfo[1],out ButtonFunction linkedFunction);
+            DiscordRole linkedRole = args.Guild.GetRole(ulong.Parse(buttonInfo[2]));
 
-            
             switch (linkedFunction)
             {
-                case "AddRole":
-                    AddRoleToSelfUser(sender,args,linkedRole);
+                case ButtonFunction.AddRole:
+
+                    await AddRoleToSelfUser(sender,args,linkedRole);
+
                     break;
 
             }
@@ -658,6 +663,21 @@ namespace LaGrueJaune
         {
             DiscordMember member = await args.Guild.GetMemberAsync(args.User.Id);
             await member.GrantRoleAsync(role);
+
+            if (rolesParser.json.incompatibleRolesByRole.ContainsKey(role.Id))
+            {
+                foreach (ulong incompatibleRole in rolesParser.json.incompatibleRolesByRole[role.Id])
+                {
+                    try
+                    {
+                        await member.RevokeRoleAsync(args.Guild.GetRole(incompatibleRole));
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+                }
+            }
         }
 
         #endregion

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace LaGrueJaune
 {
-    public class Utils
+    public static class Utils
     {
 
         public static DiscordEmbedBuilder BuildEmbedNotes(DiscordUser member, string note, int page, int nbTotal)
@@ -36,6 +36,24 @@ namespace LaGrueJaune
 
             return new Action<DiscordMessageBuilder>((DiscordMessageBuilder) => DiscordMessageBuilder.WithEmbed(builder).AddComponents(components));
 
+        }
+        public static IEnumerable<IEnumerable<T>> Chunk<T>(this IEnumerable<T> source, int chunkSize)
+        {
+            if (chunkSize <= 0) throw new ArgumentException("La taille du chunk doit être supérieure à 0.", nameof(chunkSize));
+
+            var chunk = new List<T>(chunkSize);
+            foreach (var item in source)
+            {
+                chunk.Add(item);
+                if (chunk.Count == chunkSize)
+                {
+                    yield return chunk.ToArray();
+                    chunk.Clear();
+                }
+            }
+
+            if (chunk.Count > 0)
+                yield return chunk.ToArray();
         }
     }
 

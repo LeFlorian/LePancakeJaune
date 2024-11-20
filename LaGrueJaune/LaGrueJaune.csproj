@@ -273,6 +273,7 @@
     <Compile Include="JSON\config\JSONConfigReader.cs" />
     <Compile Include="JSON\data\JSONAnniversairesParser.cs" />
     <Compile Include="JSON\data\JSONConversationParser.cs" />
+    <Compile Include="JSON\data\JSONRolesParser.cs" />
     <Compile Include="JSON\data\JSONNotesParser.cs" />
     <Compile Include="JSON\data\JSONHistoryParser.cs" />
     <Compile Include="Program.cs" />
