@@ -555,7 +555,7 @@ namespace LaGrueJaune.commands
             var dmChannel = await member.CreateDmChannelAsync();
             await dmChannel.SendMessageAsync($"Tu a été banni de la grue jaune pour la raison suivante:\n {reason}");
 
-            string stashedNickname = member.Nickname;
+            string stashedNickname = member.DisplayName;
 
             await member.BanAsync(0, reason);
             await ctx.Channel.SendMessageAsync($"{stashedNickname} a été banni pour la raison suivante:\n{reason}");
