@@ -1,5 +1,6 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
+using Microsoft.Scripting.Hosting.Shell;
 using Newtonsoft.Json;
 using RandomNameGeneratorLibrary;
 using System;
@@ -45,6 +46,28 @@ namespace LaGrueJaune.config
             }
         }
 
+        public async Task keepGuildMembersOnly()
+        {
+            var guildMembers = Program.Guild.GetAllMembersAsync().Result;
+            var annivMembers = json.Anniversaires.Keys.ToList();
+            foreach (string id in annivMembers)
+            {
+                bool isGuildMember = false;
+                foreach (DiscordMember member in guildMembers)
+                {
+                    if (id.Equals(member.Id.ToString()))
+                    {
+                        isGuildMember = true;
+                    }
+                }
+                if (!isGuildMember)
+                {
+                    json.Anniversaires.Remove(id);
+                }
+            }
+            await WriteJSON();
+        }
+
         public async Task AddAnniv(string memberID, string dateAnniv, bool ignored)
         {
             if (json == null)
@@ -64,6 +87,10 @@ namespace LaGrueJaune.config
                 newAnniversaire.ignored = ignored;
                 json.Anniversaires.Add(memberID, newAnniversaire);
             }
+
+            // Tri dans l'ordre des dates d'anniversaire
+            json.Anniversaires = json.Anniversaires.OrderBy(a => a.Value.dateAnniv.Substring(3) + a.Value.dateAnniv.Substring(0,2)).ToDictionary(a => a.Key, a => a.Value);
+
             await WriteJSON();
         }
     }

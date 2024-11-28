@@ -132,8 +132,7 @@ namespace LaGrueJaune
             // Trigger pour vérifier les anniversaires à 8h chaque matin
             var trigger = TriggerBuilder.Create()
                 .WithDailyTimeIntervalSchedule(s => s
-                .WithIntervalInHours(24)
-                    //.WithIntervalInHours(24) // daily
+                    .WithIntervalInHours(24)
                     .StartingDailyAt(TimeOfDay.HourAndMinuteOfDay(8, 0)) // 8h du matin
                 )
                 .Build();
@@ -233,13 +232,13 @@ namespace LaGrueJaune
                 // Page suivante
                 else if (buttonId % 2 == 0 && buttonId / 2 < list.Count)
                 {
-                    var action = buildAction(args.Guild.Members.Values.Where(m => m.Id.Equals(userId)).First(), list[buttonId / 2], buttonId / 2 + 1);
+                    var action = buildActionNotes(args.Guild.Members.Values.Where(m => m.Id.Equals(userId)).First(), list[buttonId / 2], buttonId / 2 + 1);
                     await args.Message.ModifyAsync(action);
                 }
                 // Page précédente
                 else if (buttonId % 2 != 0 && buttonId >= 3)
                 {
-                    var action = buildAction(args.Guild.Members.Values.Where(m => m.Id.Equals(userId)).First(), list[(buttonId - 1) / 2 - 1], (buttonId - 1) / 2);
+                    var action = buildActionNotes(args.Guild.Members.Values.Where(m => m.Id.Equals(userId)).First(), list[(buttonId - 1) / 2 - 1], (buttonId - 1) / 2);
                     await args.Message.ModifyAsync(action);
                 }
             }

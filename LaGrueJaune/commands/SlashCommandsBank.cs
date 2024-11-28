@@ -11,6 +11,7 @@ using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using static LaGrueJaune.config.JSONAnniversaires;
 using static LaGrueJaune.Utils;
@@ -691,6 +692,138 @@ namespace LaGrueJaune.commands
         #endregion
 
         #region birthday
+        [SlashCommand("annivList", "Rédige la liste des anniversaires en embed")]
+        [SlashCommandPermissions(Permissions.ModerateMembers)]
+        public async Task annivList(InteractionContext ctx)
+        {
+            await ctx.Interaction.DeferAsync(ephemeral: false);
+
+            if (ctx.Guild == null)
+            {
+                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
+                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
+                return;
+            }
+
+            DiscordEmbedBuilder builderCommandes = new DiscordEmbedBuilder()
+                .WithColor(DiscordColor.Gold)
+                .WithTitle($"Commandes pour gérer son anniversaire")
+                .WithAuthor("La Grue Jaune", iconUrl: Program.Guild.IconUrl)
+                ;
+
+            builderCommandes.AddField("Ajouter mon anniversaire", "```/ajoutanniv```", false);
+            builderCommandes.AddField("Retirer mon anniversaire", "```/retraitanniv```", false);
+            builderCommandes.AddField("Activer le message du bot", "```/bonannivon```", false);
+            builderCommandes.AddField("Désactiver le message du bot", "```/bonannivoff```", false);
+            await ctx.Channel.SendMessageAsync(builderCommandes);
+
+            DiscordEmbedBuilder builderAnniv = BuildEmbedAnniv(Program.anniversairesParser.json.Anniversaires);
+            await ctx.Channel.SendMessageAsync(builderAnniv);
+
+            DiscordFollowupMessageBuilder builderOK = new DiscordFollowupMessageBuilder().WithContent($"Liste OK.");
+            await ctx.Interaction.CreateFollowupMessageAsync(builderOK);
+
+        }
+
+        [SlashCommand("ajoutAnniv", "Ajoute mon anniversaire à la liste")]
+        [SlashCommandPermissions(Permissions.AccessChannels)]
+        public async Task ajoutAnniv(InteractionContext ctx, [Option("Jour", "Préciser le jour")] string jour, [Option("Mois", "Préciser le mois")] string mois)
+        {
+            await ctx.Interaction.DeferAsync(ephemeral: true);
+
+            if (ctx.Guild == null)
+            {
+                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
+                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
+                return;
+            }
+
+            string outMessage = "Ajout effectué.";
+            if (Program.anniversairesParser.json.Anniversaires.ContainsKey(ctx.User.Id.ToString())){
+                outMessage = "Vous êtes déjà dans la liste, la date a été mise à jour.";
+            }
+
+            string dateAnniv = jour.PadLeft(2, '0') + '/' + mois.PadLeft(2, '0');
+
+            // Vérification de la validité de la date
+            DateTime date;
+            bool isDate = DateTime.TryParse(dateAnniv, out date);
+            if (!isDate)
+            {
+                outMessage = "Cette date n'est pas valide !";
+            }
+
+            else
+            {
+                await Program.anniversairesParser.AddAnniv(ctx.User.Id.ToString(), dateAnniv, false);
+                await Program.anniversairesParser.keepGuildMembersOnly();
+
+                DiscordEmbedBuilder builderAnniv = BuildEmbedAnniv(Program.anniversairesParser.json.Anniversaires);
+                DiscordEmbed embedAnniv = builderAnniv.Build();
+
+                var annivMessages = Program.Guild.GetChannel(Program.config.ID_annivChannel).GetMessagesAsync(1).Result;
+                var messageAnniv = annivMessages.First();
+
+                // Cas où la commande est exécutée dans le salon anniversaires
+                if (ctx.Channel.Equals(Program.Guild.GetChannel(Program.config.ID_annivChannel)))
+                {
+                    annivMessages = Program.Guild.GetChannel(Program.config.ID_annivChannel).GetMessagesAsync(2).Result;
+                    messageAnniv = annivMessages.First();
+                }
+
+                await messageAnniv.ModifyAsync(embedAnniv);
+            }
+
+            DiscordFollowupMessageBuilder builderOK = new DiscordFollowupMessageBuilder().WithContent(outMessage);
+            await ctx.Interaction.CreateFollowupMessageAsync(builderOK);
+
+        }
+
+        [SlashCommand("retraitAnniv", "Retire mon anniversaire de la liste")]
+        [SlashCommandPermissions(Permissions.AccessChannels)]
+        public async Task retraitAnniv(InteractionContext ctx)
+        {
+            await ctx.Interaction.DeferAsync(ephemeral: true);
+
+            if (ctx.Guild == null)
+            {
+                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
+                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
+                return;
+            }
+
+            string outMessage = "Retrait effectué.";
+            if (!Program.anniversairesParser.json.Anniversaires.ContainsKey(ctx.User.Id.ToString()))
+            {
+                outMessage = "Vous n'êtes pas dans la liste, aucune action n'a été effectuée.";
+            }
+
+            else
+            {
+                Program.anniversairesParser.json.Anniversaires.Remove(ctx.User.Id.ToString());
+                await Program.anniversairesParser.keepGuildMembersOnly();
+
+                DiscordEmbedBuilder builderAnniv = BuildEmbedAnniv(Program.anniversairesParser.json.Anniversaires);
+                DiscordEmbed embedAnniv = builderAnniv.Build();
+
+                var annivMessages = Program.Guild.GetChannel(Program.config.ID_annivChannel).GetMessagesAsync(1).Result;
+                DiscordMessage messageAnniv = annivMessages.First();
+
+                // Cas où la commande est exécutée dans le salon anniversaires
+                if (ctx.Channel.Equals(Program.Guild.GetChannel(Program.config.ID_annivChannel)))
+                {
+                    annivMessages = Program.Guild.GetChannel(Program.config.ID_annivChannel).GetMessagesAsync(2).Result;
+                    messageAnniv = annivMessages.First();
+                }
+
+                await messageAnniv.ModifyAsync(embedAnniv);
+            }
+
+            DiscordFollowupMessageBuilder builderOK = new DiscordFollowupMessageBuilder().WithContent(outMessage);
+            await ctx.Interaction.CreateFollowupMessageAsync(builderOK);
+
+        }
+
         [SlashCommand("annivMaj", "Récupère la liste des anniversaires du salon")]
         [SlashCommandPermissions(Permissions.ModerateMembers)]
         public async Task annivMaj(InteractionContext ctx)
@@ -813,7 +946,7 @@ namespace LaGrueJaune.commands
                     {
                         Program.anniversairesParser.json.Anniversaires[member.Id.ToString()].ignored = true;
                         await Program.anniversairesParser.WriteJSON();
-                        builder = builder.WithContent($"Je ne vous souhaitera plus bon anniversaire.");
+                        builder = builder.WithContent($"Je ne vous souhaiterais plus bon anniversaire.");
                     }
                 }
             }
@@ -893,28 +1026,34 @@ namespace LaGrueJaune.commands
         }
         #endregion
 
-        #region FunFact
-        /*
-        [SlashCommand("Funfact", "Renvoie un fait aléatoire")]
-        [SlashRequireUserPermissions(Permissions.AccessChannels)]
-        public async Task funfact(InteractionContext ctx, [Option("Texte", "Texte à traduire")] string texte)
+        #region Recommandations
+        [SlashCommand("recommandation", "Recommander une adresse")]
+        [SlashCommandPermissions(Permissions.AccessChannels)]
+        public async Task recoAdresse(InteractionContext ctx, 
+            [Option("Nom", "Nom du lieu")] string nom, 
+            [Option("Type", "Type de lieu")] string type, 
+            [Option("Adresse", "Adresse du lieu")] string adresse, 
+            [Option("Prix", "Prix approximatif")] string prix,
+            [Option("Commentaire", "Description pour donner envie de tester le lieu")] string com,
+            [Option("Note", "Votre note sur 5")] string note,
+            [Option("Site", "Lien du site web")] string url = null)
         {
-            await ctx.Interaction.DeferAsync(ephemeral: false);
 
-            var translator = new GoogleTranslator();
+            await ctx.Interaction.DeferAsync(ephemeral: true);
+            if (ctx.Guild == null)
+            {
+                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
+                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
+                return;
+            }
 
-            Language from = Language.English;
-            Language to = Language.French;
+            DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"Recommandation ajoutée.");
 
-            TranslationResult result = await translator.TranslateLiteAsync(texte, from, to);
+            DiscordEmbedBuilder embedReco = BuildEmbedReco(ctx.User, nom, type, adresse, url, prix, com, note);
+            await ctx.Channel.SendMessageAsync(embedReco);
 
-            string resultMerged = result.MergedTranslation;
-
-            DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent(resultMerged);
             await ctx.Interaction.CreateFollowupMessageAsync(builder);
-
         }
-        */
         #endregion
     }
 }
