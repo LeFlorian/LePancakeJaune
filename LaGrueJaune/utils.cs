@@ -10,7 +10,7 @@ using static LaGrueJaune.config.JSONAnniversaires;
 
 namespace LaGrueJaune
 {
-    public class Utils
+    public static class Utils
     {
 
         public static DiscordEmbedBuilder BuildEmbedNotes(DiscordUser member, string note, int page, int nbTotal)
@@ -43,7 +43,6 @@ namespace LaGrueJaune
         public static DiscordEmbedBuilder addMonth(DiscordEmbedBuilder builder, Dictionary<string, MemberAnniversaire> anniversaires, string monthLabel, string monthNumber)
         {
             string monthAnnivs = "";
-            string writeDay = "";
             string prevDay = "";
             foreach (KeyValuePair<string, MemberAnniversaire> anniv in anniversaires.Where(a => monthNumber.Equals(a.Value.dateAnniv.Substring(3))))
             {
@@ -77,7 +76,6 @@ namespace LaGrueJaune
             DiscordEmbedBuilder builder = new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Gold)
                 .WithTitle($"Calendrier des anniversaires")
-                .WithAuthor("La Grue Jaune", iconUrl: Program.Guild.IconUrl)
                 .WithTimestamp(System.DateTime.Now)
                 ;
 
@@ -124,7 +122,7 @@ namespace LaGrueJaune
                 $":money_with_wings: +/- 18 :star: 5/5 :adult: <@{member.Id}>\n" +
                 $"{com21}";
             string reco22 = com22 + $"```2 Rue Copernic, 44000 Nantes```";
-            
+
             DiscordEmbedBuilder builder = new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Gold)
                 .WithTitle("Bars")
@@ -135,7 +133,25 @@ namespace LaGrueJaune
                 ;
 
             return builder;
+        }
 
+        public static IEnumerable<IEnumerable<T>> Chunk<T>(this IEnumerable<T> source, int chunkSize)
+        {
+            if (chunkSize <= 0) throw new ArgumentException("La taille du chunk doit être supérieure à 0.", nameof(chunkSize));
+
+            var chunk = new List<T>(chunkSize);
+            foreach (var item in source)
+            {
+                chunk.Add(item);
+                if (chunk.Count == chunkSize)
+                {
+                    yield return chunk.ToArray();
+                    chunk.Clear();
+                }
+            }
+
+            if (chunk.Count > 0)
+                yield return chunk.ToArray();
         }
     }
 

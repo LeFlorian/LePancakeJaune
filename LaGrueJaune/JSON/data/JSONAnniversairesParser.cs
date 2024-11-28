@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -92,6 +93,33 @@ namespace LaGrueJaune.config
             json.Anniversaires = json.Anniversaires.OrderBy(a => a.Value.dateAnniv.Substring(3) + a.Value.dateAnniv.Substring(0,2)).ToDictionary(a => a.Key, a => a.Value);
 
             await WriteJSON();
+        }
+
+        public async Task updateAnnivInEmbed(string memberId, string dateAnniv, DiscordChannel channel, bool ajout)
+        {
+            if (ajout) {
+                await AddAnniv(memberId, dateAnniv, false);
+            }
+            else
+            {
+                this.json.Anniversaires.Remove(memberId);
+            }
+            await keepGuildMembersOnly();
+
+            DiscordEmbedBuilder builderAnniv = Utils.BuildEmbedAnniv(Program.anniversairesParser.json.Anniversaires);
+            DiscordEmbed embedAnniv = builderAnniv.Build();
+
+            var annivMessages = Program.Guild.GetChannel(Program.config.ID_annivChannel).GetMessagesAsync(1).Result;
+            var messageAnniv = annivMessages.First();
+
+            // Cas où la commande est exécutée dans le salon anniversaires
+            if (channel.Equals(Program.Guild.GetChannel(Program.config.ID_annivChannel)))
+            {
+                annivMessages = Program.Guild.GetChannel(Program.config.ID_annivChannel).GetMessagesAsync(2).Result;
+                messageAnniv = annivMessages.First();
+            }
+
+            await messageAnniv.ModifyAsync(embedAnniv);
         }
     }
 

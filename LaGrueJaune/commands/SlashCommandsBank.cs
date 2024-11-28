@@ -1,9 +1,10 @@
-﻿using DSharpPlus;
+using DSharpPlus;
 using DSharpPlus.Entities;
+using DSharpPlus.EventArgs;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.SlashCommands.Attributes;
 using LaGrueJaune.config;
-using Microsoft.Scripting.Hosting;
+using Microsoft.Scripting.Generation;
 using Quartz.Util;
 using System;
 using System.Collections.Generic;
@@ -271,6 +272,8 @@ namespace LaGrueJaune.commands
 
             await EmbedModify(ctx, title, description, hexColor, imageUrl, titleUrl, authorName, authorUrl, authorIconUrl, footerText, footerIconUrl, thumbmailUrl, true);
 
+            await SelectMessage(ctx,currentEditingMessage.JumpLink.OriginalString,true);
+
             await ctx.DeleteResponseAsync();
         }
 
@@ -391,11 +394,12 @@ namespace LaGrueJaune.commands
 
         [SlashCommand("SelectMessage", "Select an embeded message")]
         [SlashRequireUserPermissions(Permissions.ModerateMembers)]
-        public async Task SelectMessage(InteractionContext ctx, 
-            [Option("Message","The url of the embed to modify")] string messageUrl)
+        public async Task SelectMessage(InteractionContext ctx,
+            [Option("Message", "The url of the embed to modify")] string messageUrl,
+            [Option("Force","Do not use")] bool forceResponse = false)
         {
-
-            await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+            if (!forceResponse)
+                await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
 
             DiscordMessage message = await Program.GetMessageFromURI(messageUrl);
             Console.WriteLine(message);
@@ -422,31 +426,91 @@ namespace LaGrueJaune.commands
         #endregion
 
         #region Buttons
-        [SlashCommand("ButtonAdd","Add a button to a selected message")]
+        [SlashCommand("ButtonAdd", "Add a button to a selected message")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
         public async Task ButtonAdd(InteractionContext ctx,
-            [Option("Style","Button style")] ButtonStyle bs = ButtonStyle.Primary,
-            [Option("Label","Button text")] string label = "",
-            [Option("Status","Is the button is active or not")] bool active = true,
-            [Option("LinkedFunction","Function of the button when pressed")] ButtonFunction function = ButtonFunction.Null,
-            [Option("Role","Role to assign when pressed the button")] DiscordRole role = default)
+            [Option("Style", "Button style")] ButtonStyle bs = ButtonStyle.Primary,
+            [Option("Label", "Button text")] string label = "",
+            [Option("Status", "Is the button is active or not")] bool active = true,
+            [Option("LinkedFunction", "Function of the button when pressed")] ButtonFunction function = ButtonFunction.Null,
+            [Option("Role", "Role to assign when pressed the button")] DiscordRole role = default)
         {
+            if (currentEditingMessage == null)
+            {
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
+                    new DiscordInteractionResponseBuilder()
+                    {
+                        IsEphemeral = true,
+                        Content = "Pas de messages sélectionnés"
+                    });
+                return; // On quitte la fonction pour éviter une erreur
+            }
+
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
             DiscordMessageBuilder message = new DiscordMessageBuilder(currentEditingMessage);
 
+            // Récupération et regroupement des composants existants
+            var currentComponents = new List<DiscordComponent>();
 
-            message.AddComponents(new DiscordComponent[]
+            foreach (var row in currentEditingMessage.Components)
             {
-                new DiscordButtonComponent(
-                    bs, 
-                    $"{function}:{role.Id}",
-                    label, 
-                    !active)
-            });
-            if (currentEditingMessage.Author == Program.Client.CurrentUser)
-                await currentEditingMessage.ModifyAsync(message);
+                if (row.Type == ComponentType.ActionRow)
+                {
+                    DiscordActionRowComponent ar = (DiscordActionRowComponent)row;
 
-            await ctx.DeleteResponseAsync();
+                    currentComponents.AddRange(ar.Components);
+                }
+            }
+
+            Console.WriteLine(currentComponents.Count);
+            foreach (var comp in currentComponents)
+                Console.WriteLine(comp.ToString());
+
+            // Création du bouton
+            var newButton = new DiscordButtonComponent(
+                bs,
+                $"{Guid.NewGuid()}:{function}:{role.Id}", // ID du bouton
+                label,
+                !active // Disabled ou non
+            );
+
+            currentComponents.Add(newButton);
+            message.AddComponents(currentComponents);
+
+            /*
+            // Organisation des composants en lignes
+            var actionRows = new List<DiscordActionRowComponent>();
+            foreach (var chunk in Utils.Chunk(currentComponents, 5))
+            {
+                var actionRow = new DiscordActionRowComponent(chunk);
+                actionRows.Add(actionRow); // Ajoute chaque ligne complète à la liste
+            }
+
+            // Ajoute les lignes au message
+            message.ClearComponents(); // Nettoie les anciens composants
+            foreach (var actionRow in actionRows)
+            {
+                message.AddComponents(actionRow); // Ajoute chaque ligne complète
+            }*/
+
+            Console.WriteLine("End : "+message.Components.Count);
+
+
+            try
+            {
+                // Modification du message
+                currentEditingMessage = await currentEditingMessage.ModifyAsync(message);
+
+                await ctx.DeleteResponseAsync(); // Supprime la réponse d'attente
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Erreur lors de la modification du message : {e}");
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder()
+                    .WithContent("Une erreur est survenue lors de la modification du message."));
+                await Task.Delay(5000);
+                await ctx.DeleteResponseAsync();
+            }
         }
 
         #endregion
@@ -492,7 +556,7 @@ namespace LaGrueJaune.commands
             var dmChannel = await member.CreateDmChannelAsync();
             await dmChannel.SendMessageAsync($"Tu a été banni de la grue jaune pour la raison suivante:\n {reason}");
 
-            string stashedNickname = member.Nickname;
+            string stashedNickname = member.DisplayName;
 
             await member.BanAsync(0, reason);
             await ctx.Channel.SendMessageAsync($"{stashedNickname} a été banni pour la raison suivante:\n{reason}");
@@ -696,7 +760,7 @@ namespace LaGrueJaune.commands
         [SlashCommandPermissions(Permissions.ModerateMembers)]
         public async Task annivList(InteractionContext ctx)
         {
-            await ctx.Interaction.DeferAsync(ephemeral: false);
+            await ctx.Interaction.DeferAsync(ephemeral: true);
 
             if (ctx.Guild == null)
             {
@@ -708,7 +772,6 @@ namespace LaGrueJaune.commands
             DiscordEmbedBuilder builderCommandes = new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Gold)
                 .WithTitle($"Commandes pour gérer son anniversaire")
-                .WithAuthor("La Grue Jaune", iconUrl: Program.Guild.IconUrl)
                 ;
 
             builderCommandes.AddField("Ajouter mon anniversaire", "```/ajoutanniv```", false);
@@ -755,23 +818,46 @@ namespace LaGrueJaune.commands
 
             else
             {
-                await Program.anniversairesParser.AddAnniv(ctx.User.Id.ToString(), dateAnniv, false);
-                await Program.anniversairesParser.keepGuildMembersOnly();
+                await Program.anniversairesParser.updateAnnivInEmbed(ctx.User.Id.ToString(), dateAnniv, ctx.Channel, true);
+            }
 
-                DiscordEmbedBuilder builderAnniv = BuildEmbedAnniv(Program.anniversairesParser.json.Anniversaires);
-                DiscordEmbed embedAnniv = builderAnniv.Build();
+            DiscordFollowupMessageBuilder builderOK = new DiscordFollowupMessageBuilder().WithContent(outMessage);
+            await ctx.Interaction.CreateFollowupMessageAsync(builderOK);
 
-                var annivMessages = Program.Guild.GetChannel(Program.config.ID_annivChannel).GetMessagesAsync(1).Result;
-                var messageAnniv = annivMessages.First();
+        }
 
-                // Cas où la commande est exécutée dans le salon anniversaires
-                if (ctx.Channel.Equals(Program.Guild.GetChannel(Program.config.ID_annivChannel)))
-                {
-                    annivMessages = Program.Guild.GetChannel(Program.config.ID_annivChannel).GetMessagesAsync(2).Result;
-                    messageAnniv = annivMessages.First();
-                }
+        [SlashCommand("modoAjoutAnniv", "Ajoute un anniversaire à la liste")]
+        [SlashCommandPermissions(Permissions.ModerateMembers)]
+        public async Task modoAjoutAnniv(InteractionContext ctx, [Option("Membre", "Préciser le membre")] DiscordUser membre, [Option("Jour", "Préciser le jour")] string jour, [Option("Mois", "Préciser le mois")] string mois)
+        {
+            await ctx.Interaction.DeferAsync(ephemeral: true);
 
-                await messageAnniv.ModifyAsync(embedAnniv);
+            if (ctx.Guild == null)
+            {
+                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
+                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
+                return;
+            }
+
+            string outMessage = "Ajout effectué.";
+            if (Program.anniversairesParser.json.Anniversaires.ContainsKey(membre.Id.ToString()))
+            {
+                outMessage = "Le membre est déjà dans la liste, la date a été mise à jour.";
+            }
+
+            string dateAnniv = jour.PadLeft(2, '0') + '/' + mois.PadLeft(2, '0');
+
+            // Vérification de la validité de la date
+            DateTime date;
+            bool isDate = DateTime.TryParse(dateAnniv, out date);
+            if (!isDate)
+            {
+                outMessage = "Cette date n'est pas valide !";
+            }
+
+            else
+            {
+                await Program.anniversairesParser.updateAnnivInEmbed(membre.Id.ToString(), dateAnniv, ctx.Channel, true);
             }
 
             DiscordFollowupMessageBuilder builderOK = new DiscordFollowupMessageBuilder().WithContent(outMessage);
@@ -800,23 +886,36 @@ namespace LaGrueJaune.commands
 
             else
             {
-                Program.anniversairesParser.json.Anniversaires.Remove(ctx.User.Id.ToString());
-                await Program.anniversairesParser.keepGuildMembersOnly();
+                await Program.anniversairesParser.updateAnnivInEmbed(ctx.User.Id.ToString(), null, ctx.Channel, false);
+            }
 
-                DiscordEmbedBuilder builderAnniv = BuildEmbedAnniv(Program.anniversairesParser.json.Anniversaires);
-                DiscordEmbed embedAnniv = builderAnniv.Build();
+            DiscordFollowupMessageBuilder builderOK = new DiscordFollowupMessageBuilder().WithContent(outMessage);
+            await ctx.Interaction.CreateFollowupMessageAsync(builderOK);
 
-                var annivMessages = Program.Guild.GetChannel(Program.config.ID_annivChannel).GetMessagesAsync(1).Result;
-                DiscordMessage messageAnniv = annivMessages.First();
+        }
 
-                // Cas où la commande est exécutée dans le salon anniversaires
-                if (ctx.Channel.Equals(Program.Guild.GetChannel(Program.config.ID_annivChannel)))
-                {
-                    annivMessages = Program.Guild.GetChannel(Program.config.ID_annivChannel).GetMessagesAsync(2).Result;
-                    messageAnniv = annivMessages.First();
-                }
+        [SlashCommand("modoRetraitAnniv", "Retire un anniversaire de la liste")]
+        [SlashCommandPermissions(Permissions.ModerateMembers)]
+        public async Task modoRetraitAnniv(InteractionContext ctx, [Option("Membre", "Préciser le membre")] DiscordUser membre)
+        {
+            await ctx.Interaction.DeferAsync(ephemeral: true);
 
-                await messageAnniv.ModifyAsync(embedAnniv);
+            if (ctx.Guild == null)
+            {
+                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
+                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
+                return;
+            }
+
+            string outMessage = "Retrait effectué.";
+            if (!Program.anniversairesParser.json.Anniversaires.ContainsKey(membre.Id.ToString()))
+            {
+                outMessage = "Ce membre n'est pas dans la liste, aucune action n'a été effectuée.";
+            }
+
+            else
+            {
+                await Program.anniversairesParser.updateAnnivInEmbed(membre.Id.ToString(), null, ctx.Channel, false);
             }
 
             DiscordFollowupMessageBuilder builderOK = new DiscordFollowupMessageBuilder().WithContent(outMessage);
@@ -828,7 +927,7 @@ namespace LaGrueJaune.commands
         [SlashCommandPermissions(Permissions.ModerateMembers)]
         public async Task annivMaj(InteractionContext ctx)
         {
-            await ctx.Interaction.DeferAsync(ephemeral: false);
+            await ctx.Interaction.DeferAsync(ephemeral: true);
 
             if (ctx.Guild == null)
             {
@@ -889,11 +988,11 @@ namespace LaGrueJaune.commands
             await ctx.Interaction.CreateFollowupMessageAsync(builder);
         }
 
-        [SlashCommand("annivFiltre", "Exclut un membre de la liste des anniversaires à souhaiter")]
+        [SlashCommand("modoAnnivOff", "Exclut un membre de la liste des anniversaires à souhaiter")]
         [SlashCommandPermissions(Permissions.ModerateMembers)]
-        public async Task annivFiltre(InteractionContext ctx, [Option("Membre", "Membre à exclure de la liste")] DiscordUser member)
+        public async Task modoAnnivOff(InteractionContext ctx, [Option("Membre", "Membre à exclure de la liste")] DiscordUser member)
         {
-            await ctx.Interaction.DeferAsync(ephemeral: false);
+            await ctx.Interaction.DeferAsync(ephemeral: true);
 
             if (ctx.Guild == null)
             {
@@ -908,12 +1007,60 @@ namespace LaGrueJaune.commands
             {
                 if (member.Id.ToString().Equals(memberAnniv.Key))
                 {
-                    Program.anniversairesParser.json.Anniversaires[member.Id.ToString()].ignored = true;
-                    await Program.anniversairesParser.WriteJSON();
-                    builder = builder.WithContent($"<@{member.Id}> a été ajouté à la liste d'exclusion.");
+                    if (Program.anniversairesParser.json.Anniversaires[member.Id.ToString()].ignored)
+                    {
+                        builder = builder.WithContent($"<@{member.Id}> est déjà dans la liste d'exclusion !");
+                    }
+                    else
+                    {
+                        Program.anniversairesParser.json.Anniversaires[member.Id.ToString()].ignored = true;
+                        await Program.anniversairesParser.WriteJSON();
+                        builder = builder.WithContent($"<@{member.Id}> a été ajouté à la liste d'exclusion.");
+                    }
                 }
             }
            
+            await ctx.Interaction.CreateFollowupMessageAsync(builder);
+        }
+
+        [SlashCommand("modoAnnivOn", "Retire de la liste d'exclusion pour souhaiter bon anniversaire")]
+        [SlashCommandPermissions(Permissions.ModerateMembers)]
+        public async Task annivFiltreReset(InteractionContext ctx, [Option("Membre", "Membre à ne plus exclure")] DiscordUser member = null, [Option("Tous", "Préciser \"oui\" pour un reset complet")] String all = "non")
+        {
+            await ctx.Interaction.DeferAsync(ephemeral: true);
+
+            if (ctx.Guild == null)
+            {
+                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
+                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
+                return;
+            }
+
+            DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"Il faut renseigner au moins un paramètre !");
+
+            if (member != null)
+            {
+                if (!Program.anniversairesParser.json.Anniversaires[member.Id.ToString()].ignored)
+                {
+                    builder = builder.WithContent($"<@{member.Id}> n'est pas dans la liste d'exclusion !");
+                }
+                else
+                {
+                    Program.anniversairesParser.json.Anniversaires[member.Id.ToString()].ignored = false;
+                    await Program.anniversairesParser.WriteJSON();
+                    builder = builder.WithContent($"<@{member.Id}> a été retiré de la liste d'exclusion.");
+                }
+            }
+
+            if ("oui".Equals(all))
+            {
+                foreach (KeyValuePair<string, MemberAnniversaire> memberAnniv in Program.anniversairesParser.json.Anniversaires)
+                {
+                    Program.anniversairesParser.json.Anniversaires[memberAnniv.Key].ignored = false;
+                }
+                await Program.anniversairesParser.WriteJSON();
+                builder = builder.WithContent($"Toutes les personnes ont été retirées de la liste d'exclusion");
+            }
             await ctx.Interaction.CreateFollowupMessageAsync(builder);
         }
 
@@ -946,6 +1093,7 @@ namespace LaGrueJaune.commands
                     {
                         Program.anniversairesParser.json.Anniversaires[member.Id.ToString()].ignored = true;
                         await Program.anniversairesParser.WriteJSON();
+
                         builder = builder.WithContent($"Je ne vous souhaiterais plus bon anniversaire.");
                     }
                 }
@@ -990,45 +1138,11 @@ namespace LaGrueJaune.commands
 
             await ctx.Interaction.CreateFollowupMessageAsync(builder);
         }
-
-        [SlashCommand("annivFiltreReset", "Retire de la liste d'exclusion pour souhaiter bon anniversaire")]
-        [SlashCommandPermissions(Permissions.ModerateMembers)]
-        public async Task annivFiltreReset(InteractionContext ctx, [Option("Membre", "Membre à ne plus exclure")] DiscordUser member = null, [Option("Tous", "Préciser \"oui\" pour un reset complet")] String all = "non")
-        {
-            await ctx.Interaction.DeferAsync(ephemeral: false);
-
-            if (ctx.Guild == null)
-            {
-                DiscordFollowupMessageBuilder errorBuilder = new DiscordFollowupMessageBuilder().WithContent("Cette commande n'est pas autorisée en MP.");
-                await ctx.Interaction.CreateFollowupMessageAsync(errorBuilder);
-                return;
-            }
-
-            DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"Il faut renseigner au moins un paramètre !");
-
-            if (member != null)
-            {
-                Program.anniversairesParser.json.Anniversaires[member.Id.ToString()].ignored = false;
-                await Program.anniversairesParser.WriteJSON();
-                builder = builder.WithContent($"<@{member.Id}> a été retiré de la liste d'exclusion.");
-            }
-
-            if ("oui".Equals(all))
-            {
-                foreach (KeyValuePair<string, MemberAnniversaire> memberAnniv in Program.anniversairesParser.json.Anniversaires)
-                {
-                    Program.anniversairesParser.json.Anniversaires[memberAnniv.Key].ignored = false;
-                }
-                await Program.anniversairesParser.WriteJSON();
-                builder = builder.WithContent($"Toutes les personnes ont été retirées de la liste d'exclusion");
-            }
-            await ctx.Interaction.CreateFollowupMessageAsync(builder);
-        }
         #endregion
 
         #region Recommandations
         [SlashCommand("recommandation", "Recommander une adresse")]
-        [SlashCommandPermissions(Permissions.AccessChannels)]
+        [SlashCommandPermissions(Permissions.ModerateMembers)]
         public async Task recoAdresse(InteractionContext ctx, 
             [Option("Nom", "Nom du lieu")] string nom, 
             [Option("Type", "Type de lieu")] string type, 
@@ -1054,6 +1168,40 @@ namespace LaGrueJaune.commands
 
             await ctx.Interaction.CreateFollowupMessageAsync(builder);
         }
+        #endregion
+
+        #region Roles
+        
+        [SlashCommandGroup("Roles", "Gestion des rôles et assignation")]
+        public class Roles : ApplicationCommandModule
+        {
+            [SlashCommand("AddRoleIncompatibility", "Ajoute une incompatibilité de rôle quand la fonction 'AddRole' est invoké")]
+            [SlashRequireUserPermissions(Permissions.Administrator)]
+            public async Task AddRoleIncompatibility(InteractionContext ctx,
+                [Option("Role_A","Premier rôle")] DiscordRole roleA = default,
+                [Option("Role_B", "Deuxième rôle")] DiscordRole roleB = default)
+            {
+                await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+
+                await Program.rolesParser.AddIncompatibility(roleA.Id, roleB.Id);
+
+                await ctx.DeleteResponseAsync();
+            }
+
+            [SlashCommand("RemoveRoleIncompatibility", "Retire une incompatibilité de rôle.")]
+            [SlashRequireUserPermissions(Permissions.Administrator)]
+            public async Task RemoveRoleIncompatibility(InteractionContext ctx,
+                [Option("Role_A", "Premier rôle")] DiscordRole roleA = default,
+                [Option("Role_B", "Deuxième rôle")] DiscordRole roleB = default)
+            {
+                await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+
+                await Program.rolesParser.RemoveIncompatibility(roleA.Id, roleB.Id);
+
+                await ctx.DeleteResponseAsync();
+            }
+        }
+        
         #endregion
     }
 }
