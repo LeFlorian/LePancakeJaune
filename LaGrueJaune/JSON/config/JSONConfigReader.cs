@@ -28,5 +28,6 @@ namespace LaGrueJaune.config
         public ulong ID_generalChannel;
         public ulong ID_staffChannel;
         public ulong ID_annivChannel;
+        public string URL_annivPicture;
     }
 }
