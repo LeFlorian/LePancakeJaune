@@ -71,7 +71,7 @@ namespace LaGrueJaune.config
             {
                 public int amount;
                 public DateTime last;
-                public string message = "Bonjour,\nAfin de garder le serveur de La Grue Jaune actif nous retirons les personnes inactives régulièrement. Tu reçois ce message car cela fait plus de 30 jours que tu es inactif.";
+                public string message = "Bonjour,\nAfin de garder le serveur de La Grue Jaune actif nous retirons les personnes inactives régulièrement. Tu reçois ce message car cela fait plus de 30 jours que tu es inactif.\nSi tu ne souhaite pas être retiré merci d'envoyer un message sur le serveur.";
             }
         }
 
