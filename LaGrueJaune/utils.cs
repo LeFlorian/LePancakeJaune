@@ -17,12 +17,13 @@ namespace LaGrueJaune
         {
             DiscordEmbedBuilder builder = new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Gold)
-                .WithTitle($"Liste des notes")
-                .WithDescription($"**<@{memberId}>** - Note n°{page}/{nbTotal}\n\n{note}")
-                .WithAuthor("Staff de La Grue Jaune")
+                .WithTitle($"Notes")
+                .WithDescription($":adult: <@{memberId}> :notepad_spiral: {page}/{nbTotal}\n\n" +
+                $"{note}")
+                //.WithAuthor("Staff de La Grue Jaune")
                 //.WithDescription("Notes enregistrées")
                 .WithThumbnail(avatarUrl)
-                .WithFooter("La Grue Jaune", Program.Guild.IconUrl)
+                //.WithFooter("La Grue Jaune", Program.Guild.IconUrl)
                 ;
             return builder;
 

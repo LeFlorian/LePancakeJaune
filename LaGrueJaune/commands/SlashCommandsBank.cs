@@ -584,7 +584,7 @@ namespace LaGrueJaune.commands
             await ctx.Interaction.DeferAsync(ephemeral: false);
 
             // Sauvegarde de la note avec horodatage
-            await Program.notesParser.AddNotes(member.Id, $"{phrase}\n\n-# {DateTime.Now.ToString()}");
+            await Program.notesParser.AddNotes(member.Id, $"{phrase}\n-# <@{ctx.User.Id}> - {DateTime.Now.ToString()}");
 
             // Construction et envoi de la réponse
             int nbNotes = Program.notesParser.json.Notes[member.Id].listeNotes.Count;
@@ -668,7 +668,7 @@ namespace LaGrueJaune.commands
                 List<string> list = Program.notesParser.json.Notes[member.Id].listeNotes;
 
                 // Cas où le numéro de note est invalide
-                if (index >= list.Count)
+                if (index - 1 >= list.Count)
                 {
                     DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"Numéro de note invalide.");
                     await ctx.Interaction.CreateFollowupMessageAsync(builder);
