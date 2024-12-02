@@ -102,6 +102,7 @@ namespace LaGrueJaune
             Client.ScheduledGuildEventUserAdded += OnUserJoinEvent;
             Client.ScheduledGuildEventUserRemoved += OnUserLeaveEvent;
             Client.ScheduledGuildEventCompleted += OnEventCompleted;
+            Client.VoiceStateUpdated += OnUserJoinOrLeaveVoiceChannel;
             Client.UnknownEvent += UnknownEvent;
 
             #endregion
@@ -177,14 +178,7 @@ namespace LaGrueJaune
             if (args.Author.IsBot || args.Message.Content.StartsWith(config.prefix))
                 return;
 
-            JSONHistory.Description newMessage = new JSONHistory.Description()
-            {
-                author = args.Author.Username,
-                publicationDate = DateTime.Now,
-                link = args.Message.JumpLink
-            };
-
-            await historyParser.AddHistory(args.Author.Id, newMessage);
+            await AddDescriptionInHistory(args.Author.Id, args.Author.Username, DateTime.Now, args.Message.JumpLink);
 
             return;
         }
@@ -304,9 +298,14 @@ namespace LaGrueJaune
         }
 
         //USER JOIN
-        private static Task OnUserJoinEvent(DiscordClient sender, ScheduledGuildEventUserAddEventArgs args)
+        private static async Task OnUserJoinEvent(DiscordClient sender, ScheduledGuildEventUserAddEventArgs args)
         {
-            return Task.CompletedTask;
+            if (args.User.IsBot)
+                return;
+
+            await AddDescriptionInHistory(args.User.Id, args.User.Username, DateTime.Now);
+
+            return;
         }
 
         //USER LEAVE
@@ -318,6 +317,16 @@ namespace LaGrueJaune
         private static Task UnknownEvent(DiscordClient sender, UnknownEventArgs args)
         {
             return Task.CompletedTask;
+        }
+
+        private static async Task OnUserJoinOrLeaveVoiceChannel(DiscordClient sender, VoiceStateUpdateEventArgs args)
+        {
+            if (args.User.IsBot)
+                return;
+
+            await AddDescriptionInHistory(args.User.Id, args.User.Username, DateTime.Now);
+
+            return;
         }
         #endregion
 
@@ -417,6 +426,23 @@ namespace LaGrueJaune
             return message;
         }
 
+        private static async Task AddDescriptionInHistory(ulong authorID, string authorName, DateTime publicationDate, Uri messageLink = default)
+        {
+            JSONHistory.Description newMessage = new JSONHistory.Description()
+            {
+                author = authorName,
+                publicationDate = publicationDate
+            };
+
+            if (messageLink != default)
+                newMessage.link = messageLink;
+
+            await historyParser.AddHistory(authorID, newMessage);
+
+            return;
+        }
+
+
         public static async Task MakePurgeList()
         {
             userToPurge = new JSONHistory();
@@ -428,7 +454,7 @@ namespace LaGrueJaune
 
                 if (differenceInDays > 35) 
                 {
-                    mostRecentMessage.Value.kickReason = $"Tu as été kick pour innactivé ({differenceInDays} jours depuis le dernier message)";
+                    mostRecentMessage.Value.kickReason = $"Tu as été kick pour innactivé ({differenceInDays} jours depuis la dernière activité)";
                     AddUserPurge(mostRecentMessage.Key, mostRecentMessage.Value);
                 }
                 else if (differenceInDays > 10)
@@ -499,6 +525,11 @@ namespace LaGrueJaune
                     }
                 }
             }
+        }
+
+        public static void CheckAndSendMessageToPreventPrugeIsComming()
+        {
+
         }
 
         public static bool HasRole(DiscordMember member, string roleName)
