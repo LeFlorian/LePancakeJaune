@@ -13,27 +13,33 @@ namespace LaGrueJaune
     public static class Utils
     {
 
-        public static DiscordEmbedBuilder BuildEmbedNotes(DiscordUser member, string note, int page, int nbTotal)
+        public static DiscordEmbedBuilder BuildEmbedNotes(ulong memberId, string avatarUrl, string note, int page, int nbTotal)
         {
             DiscordEmbedBuilder builder = new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Gold)
                 .WithTitle($"Liste des notes")
-                .WithDescription($"**<@{member.Id}>** - Note n°{page}/{nbTotal}\n\n{note}")
+                .WithDescription($"**<@{memberId}>** - Note n°{page}/{nbTotal}\n\n{note}")
                 .WithAuthor("Staff de La Grue Jaune")
                 //.WithDescription("Notes enregistrées")
-                .WithThumbnail(member.AvatarUrl)
+                .WithThumbnail(avatarUrl)
                 .WithFooter("La Grue Jaune", Program.Guild.IconUrl)
                 ;
             return builder;
 
         }
 
-        public static Action<DiscordMessageBuilder> buildActionNotes(DiscordMember member, String note, int page)
+        public static Action<DiscordMessageBuilder> buildActionNotes(ulong memberId, string avatarUrl, String note, int page)
         {
-            int nbTotal = Program.notesParser.json.Notes[member.Id].listeNotes.Count();
-            DiscordEmbedBuilder builder = Utils.BuildEmbedNotes(member, note, page, nbTotal);
-            var previous = new DiscordButtonComponent(ButtonStyle.Primary, $"{member.Id}-{2 * page - 1}", "Précédent", false);
-            var next = new DiscordButtonComponent(ButtonStyle.Primary, $"{member.Id}-{2 * page}", "Suivant", false);
+            int nbTotal = Program.notesParser.json.Notes[memberId].listeNotes.Count();
+            DiscordEmbedBuilder builder = Utils.BuildEmbedNotes(memberId, avatarUrl, note, page, nbTotal);
+            var previous = new DiscordButtonComponent(ButtonStyle.Primary, $"{memberId}-{2 * page - 1}", "Précédent", false);
+            if (page == 1) {
+                previous.Disable();
+            }
+            var next = new DiscordButtonComponent(ButtonStyle.Primary, $"{memberId}-{2 * page}", "Suivant", false);
+            if (page == nbTotal) {
+                next.Disable();
+            }
             IEnumerable<DiscordComponent> components = new DiscordComponent[] { previous, next };
 
             return new Action<DiscordMessageBuilder>((DiscordMessageBuilder) => DiscordMessageBuilder.WithEmbed(builder).AddComponents(components));

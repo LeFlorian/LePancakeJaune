@@ -191,6 +191,7 @@ namespace LaGrueJaune
 
         private static async Task OnButtonInteractionCreated(DiscordClient sender, ComponentInteractionCreateEventArgs args)
         {
+
             #region Purge
 
             DiscordInteractionResponseBuilder dir = null;
@@ -226,6 +227,7 @@ namespace LaGrueJaune
             {
                 ulong userId = Convert.ToUInt64(args.Id.Split('-')[0]);
                 int buttonId = Int32.Parse(args.Id.Split('-')[1]);
+                DiscordEmbed embed = args.Message.Embeds.First();
 
                 List<string> list = Program.notesParser.json.Notes[userId].listeNotes;
 
@@ -233,43 +235,45 @@ namespace LaGrueJaune
                 {
                     return;
                 }
+
                 // Page suivante
                 else if (buttonId % 2 == 0 && buttonId / 2 < list.Count)
                 {
-                    var action = buildActionNotes(args.Guild.Members.Values.Where(m => m.Id.Equals(userId)).First(), list[buttonId / 2], buttonId / 2 + 1);
+                    var action = buildActionNotes(userId, embed.Thumbnail.Url.ToString(), list[buttonId / 2], buttonId / 2 + 1);
                     await args.Message.ModifyAsync(action);
                 }
                 // Page précédente
                 else if (buttonId % 2 != 0 && buttonId >= 3)
                 {
-                    var action = buildActionNotes(args.Guild.Members.Values.Where(m => m.Id.Equals(userId)).First(), list[(buttonId - 1) / 2 - 1], (buttonId - 1) / 2);
+                    var action = buildActionNotes(userId, embed.Thumbnail.Url.ToString(), list[(buttonId - 1) / 2 - 1], (buttonId - 1) / 2);
                     await args.Message.ModifyAsync(action);
                 }
+                await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage);
             }
-            catch
-            {
-
-            }
+            catch { }
             #endregion
 
             #region Other Buttons
             string[] buttonInfo = args.Interaction.Data.CustomId.Split(':');
 
-            DiscordMessage linkedMessage = args.Message;
-            Enum.TryParse(buttonInfo[1],out ButtonFunction linkedFunction);
-            DiscordRole linkedRole = args.Guild.GetRole(ulong.Parse(buttonInfo[2]));
-
-            switch (linkedFunction)
+            if (buttonInfo.Length > 1)
             {
-                case ButtonFunction.AddRole:
+                DiscordMessage linkedMessage = args.Message;
+                Enum.TryParse(buttonInfo[1], out ButtonFunction linkedFunction);
+                DiscordRole linkedRole = args.Guild.GetRole(ulong.Parse(buttonInfo[2]));
 
-                    await AddRoleToSelfUser(sender,args,linkedRole);
+                switch (linkedFunction)
+                {
+                    case ButtonFunction.AddRole:
 
-                    break;
+                        await AddRoleToSelfUser(sender, args, linkedRole);
 
+                        break;
+
+                }
+
+                await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Fonction: {linkedFunction}\nRole: {linkedRole}"));
             }
-
-            await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,new DiscordInteractionResponseBuilder().WithContent($"Fonction: {linkedFunction}\nRole: {linkedRole}"));
             #endregion
         }
 

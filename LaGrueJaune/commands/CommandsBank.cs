@@ -300,7 +300,7 @@ namespace LaGrueJaune.commands
             if (Program.notesParser.json.Notes.Keys.Contains(memberId))
             {
                 int page = 1;
-                var action = buildActionNotes(ctx.Guild.Members.Values.Where(m => m.Id.Equals(memberId)).First(), Program.notesParser.json.Notes[memberId].listeNotes.First(), page);
+                var action = buildActionNotes(memberId, null, Program.notesParser.json.Notes[memberId].listeNotes.First(), page);
 
                 await ctx.RespondAsync(action);
             } 

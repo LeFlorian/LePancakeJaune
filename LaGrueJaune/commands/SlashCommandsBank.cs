@@ -615,9 +615,14 @@ namespace LaGrueJaune.commands
 
                 // Construction de l'embed avec boutons interactifs
                 string note = Program.notesParser.json.Notes[member.Id].listeNotes.First();
-                DiscordEmbedBuilder builder = BuildEmbedNotes(member, note, page, nbTotal);
-                var previous = new DiscordButtonComponent(ButtonStyle.Primary, $"{member.Id}-{2 * page - 1}", "Précédent", false);
-                var next = new DiscordButtonComponent(ButtonStyle.Primary, $"{member.Id}-{2 * page}", "Suivant", false);
+                DiscordEmbedBuilder builder = BuildEmbedNotes(member.Id, member.AvatarUrl, note, page, nbTotal);
+                var previous = new DiscordButtonComponent(ButtonStyle.Primary, $"{member.Id}-1", "Précédent", false);
+                previous.Disable();
+                var next = new DiscordButtonComponent(ButtonStyle.Primary, $"{member.Id}-2", "Suivant", false);
+                if (page == nbTotal)
+                {
+                    next.Disable();
+                }
                 IEnumerable<DiscordComponent> components = new DiscordComponent[] { previous, next };
                 DiscordMessageBuilder message = new DiscordMessageBuilder().WithEmbed(builder);
                 DiscordFollowupMessageBuilder reponse = new DiscordFollowupMessageBuilder(message).AddComponents(components);
@@ -774,10 +779,10 @@ namespace LaGrueJaune.commands
                 .WithTitle($"Commandes pour gérer son anniversaire")
                 ;
 
-            builderCommandes.AddField("Ajouter mon anniversaire", "```/ajoutanniv```", false);
-            builderCommandes.AddField("Retirer mon anniversaire", "```/retraitanniv```", false);
-            builderCommandes.AddField("Activer le message du bot", "```/bonannivon```", false);
-            builderCommandes.AddField("Désactiver le message du bot", "```/bonannivoff```", false);
+            builderCommandes.AddField("Ajouter ton anniversaire", "```/ajoutanniv```", false);
+            builderCommandes.AddField("Retirer ton anniversaire", "```/retraitanniv```", false);
+            builderCommandes.AddField("Pour que la grue jaune te souhaite ton anniversaire", "```/bonannivon```", false);
+            builderCommandes.AddField("Pour ne pas que la grue jaune te souhaite ton anniversaire", "```/bonannivoff```", false);
             await ctx.Channel.SendMessageAsync(builderCommandes);
 
             DiscordEmbedBuilder builderAnniv = BuildEmbedAnniv(Program.anniversairesParser.json.Anniversaires);
