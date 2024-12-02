@@ -584,7 +584,7 @@ namespace LaGrueJaune.commands
             await ctx.Interaction.DeferAsync(ephemeral: false);
 
             // Sauvegarde de la note avec horodatage
-            await Program.notesParser.AddNotes(member.Id, $"{phrase}\n-# <@{ctx.User.Id}> - {DateTime.Now.ToString()}");
+            await Program.notesParser.AddNotes(member.Id, $"{phrase}\n\n-# <@{ctx.User.Id}> - {DateTime.Now.ToString()}");
 
             // Construction et envoi de la réponse
             int nbNotes = Program.notesParser.json.Notes[member.Id].listeNotes.Count;
@@ -677,7 +677,14 @@ namespace LaGrueJaune.commands
                 // Suppression de la note et réponse
                 else
                 {
-                    list.Remove(list[index - 1]);
+                    if (list.Count == 1)
+                    {
+                        Program.notesParser.json.Notes.Remove(member.Id);
+                    }
+                    else
+                    {
+                        list.Remove(list[index - 1]);
+                    }
                     await Program.notesParser.WriteJSON();
                     DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($":broom: Note n°{number} supprimée pour <@{member.Id}>.");
                     await ctx.Interaction.CreateFollowupMessageAsync(builder);
