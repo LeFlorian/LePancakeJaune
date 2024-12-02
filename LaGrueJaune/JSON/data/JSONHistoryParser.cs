@@ -64,8 +64,17 @@ namespace LaGrueJaune.config
             public double numberOfDay;
             public Uri link;
             public bool isKickable = true;
-            public string kickReason = "Si tu reçois ça, c'est probablement que je me suis trompé et que je t'ai kick par inadvertance..."; 
+            public string kickReason = "Si tu reçois ça, c'est probablement que je me suis trompé et que je t'ai kick par inadvertance...";
+
+            public Prevent prevent = new Prevent();
+            public class Prevent
+            {
+                public int amount;
+                public DateTime last;
+                public string message = "Bonjour,\nAfin de garder le serveur de La Grue Jaune actif nous retirons les personnes inactives régulièrement. Tu reçois ce message car cela fait plus de 30 jours que tu es inactif.";
+            }
         }
+
 
         public Dictionary<ulong, Description> History = new Dictionary<ulong, Description>();
     }

@@ -134,7 +134,7 @@ namespace LaGrueJaune
 
             await Client.ConnectAsync();
 
-            // Trigger pour vérifier les anniversaires à 8h chaque matin
+            // Trigger pour lancer les fonction à 8h chaque matin
             var trigger = TriggerBuilder.Create()
                 .WithDailyTimeIntervalSchedule(s => s
                     .WithIntervalInHours(24)
@@ -146,7 +146,7 @@ namespace LaGrueJaune
             StdSchedulerFactory factory = new StdSchedulerFactory();
             IScheduler scheduler = await factory.GetScheduler();
             await scheduler.Start();
-            await scheduler.ScheduleJob(JobBuilder.Create<birthdayWatch>().Build(), trigger);
+            await scheduler.ScheduleJob(JobBuilder.Create<commonWatch>().Build(), trigger);
         
             await Task.Delay(-1);
         }
@@ -527,8 +527,42 @@ namespace LaGrueJaune
             }
         }
 
-        public static void CheckAndSendMessageToPreventPrugeIsComming()
+        public static async void CheckAndSendMessageToPreventPrugeIsComming()
         {
+            foreach (var mostRecentMessage in historyParser.json.History)
+            {
+                double differenceInDays = Math.Ceiling((DateTime.Now - mostRecentMessage.Value.publicationDate).TotalDays);
+                mostRecentMessage.Value.numberOfDay = differenceInDays;
+
+                if (differenceInDays > 30)
+                {
+                    if (mostRecentMessage.Value.prevent.amount <= 0)
+                    {
+                        //Je lui envoie un message pour lui dire qu'il doit parler sur le serveur
+
+                        var member = await Guild.GetMemberAsync(mostRecentMessage.Key);
+                        var dmChannel = await member.CreateDmChannelAsync();
+                        await dmChannel.SendMessageAsync(mostRecentMessage.Value.prevent.message);
+
+
+                        mostRecentMessage.Value.prevent.amount += 1;
+                        mostRecentMessage.Value.prevent.last = DateTime.Now;
+
+                        await historyParser.AddHistory(mostRecentMessage.Key, mostRecentMessage.Value);
+                    }
+                    else
+                    {
+                        double lastPreventDay = Math.Ceiling((DateTime.Now - mostRecentMessage.Value.prevent.last).TotalDays);
+
+                        if (lastPreventDay > 60)
+                        {
+                            mostRecentMessage.Value.prevent.amount = 0;
+
+                            await historyParser.AddHistory(mostRecentMessage.Key, mostRecentMessage.Value);
+                        }
+                    }
+                }
+            }
 
         }
 
@@ -678,14 +712,24 @@ namespace LaGrueJaune
                    && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
         }
 
-        // Tâche qui souhaite bon anniversaire en comparant la date du jour avec la date des anniversaires
-        public static Task wishBirthday()
+        public static Task OnHeightAM()
         {
-            string currentDate = DateTime.Now.ToString().Substring(0,5);
+            CheckAndSendMessageToPreventPrugeIsComming();
 
-            foreach (KeyValuePair<string, MemberAnniversaire> memberAnniv in Program.anniversairesParser.json.Anniversaires)
+            WishBirthday();
+
+            return Task.CompletedTask;
+        }
+
+        // Tâche qui souhaite bon anniversaire en comparant la date du jour avec la date des anniversaires
+        public static Task WishBirthday()
+        {
+            string currentDate = DateTime.Now.ToString().Substring(0, 5);
+
+            foreach (KeyValuePair<string, MemberAnniversaire> memberAnniv in anniversairesParser.json.Anniversaires)
             {
-                if (currentDate.Equals(memberAnniv.Value.dateAnniv) && !memberAnniv.Value.ignored){
+                if (currentDate.Equals(memberAnniv.Value.dateAnniv) && !memberAnniv.Value.ignored)
+                {
                     Client.SendMessageAsync(Guild.GetChannel(config.ID_generalChannel), $"Bon anniversaire <@{memberAnniv.Key}> ! :partying_face: :tada:");
                 }
             };

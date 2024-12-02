@@ -25,7 +25,14 @@ namespace LaGrueJaune.commands
         public async Task SetUserToPurge(CommandContext ctx)
         {
             ctx.Message.DeleteAsync();
-            Program.historyParser.json.History[ctx.Member.Id].publicationDate = DateTime.MinValue;
+            if (Program.historyParser.json.History.ContainsKey(ctx.Member.Id))
+            {
+                Program.historyParser.json.History[ctx.Member.Id].publicationDate = DateTime.MinValue;
+            }
+            else
+            {
+                Program.historyParser.json.History.Add(ctx.Member.Id,new JSONHistory.Description() { publicationDate = DateTime.MinValue });
+            }
         }
 
         [Command("Purge")]
@@ -553,6 +560,15 @@ namespace LaGrueJaune.commands
         public async Task RRI(CommandContext ctx, DiscordRole A, DiscordRole B)
         {
             await Program.rolesParser.RemoveIncompatibility(A.Id, B.Id);
+        }
+        #endregion
+
+        #region Debug
+        [Command("TestPurgePrevent")]
+        [RequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task TestPurgePrevent(CommandContext ctx)
+        {
+            Program.CheckAndSendMessageToPreventPrugeIsComming();
         }
         #endregion
     }
