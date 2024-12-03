@@ -542,7 +542,11 @@ namespace LaGrueJaune
 
                         var member = await Guild.GetMemberAsync(mostRecentMessage.Key);
                         var dmChannel = await member.CreateDmChannelAsync();
-                        await dmChannel.SendMessageAsync(mostRecentMessage.Value.prevent.message);
+                        await dmChannel.SendMessageAsync(
+                            "Bonjour,\n" +
+                            "Afin de garder le serveur de La Grue Jaune actif nous retirons les personnes inactives régulièrement. Tu reçois ce message car cela fait plus de 30 jours que tu es inactif.\n" +
+                            "Si tu ne souhaite pas être retiré merci d'envoyer un message sur le serveur.\n" +
+                            "-# Ceci est un message automatique.");
 
 
                         mostRecentMessage.Value.prevent.amount += 1;
