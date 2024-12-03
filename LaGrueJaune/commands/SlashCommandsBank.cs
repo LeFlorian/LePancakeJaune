@@ -784,12 +784,13 @@ namespace LaGrueJaune.commands
             DiscordEmbedBuilder builderCommandes = new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Gold)
                 .WithTitle($"Commandes pour gérer son anniversaire")
+                .WithThumbnail("https://i.imgur.com/wmZ63pr.png")
                 ;
 
             builderCommandes.AddField("Ajouter ton anniversaire", "```/ajoutanniv```", false);
             builderCommandes.AddField("Retirer ton anniversaire", "```/retraitanniv```", false);
             builderCommandes.AddField("Pour que la grue jaune te souhaite ton anniversaire", "```/bonannivon```", false);
-            builderCommandes.AddField("Pour ne pas que la grue jaune te souhaite ton anniversaire", "```/bonannivoff```", false);
+            builderCommandes.AddField("Pour que la grue jaune ne te souhaite pas ton anniversaire", "```/bonannivoff```", false);
             await ctx.Channel.SendMessageAsync(builderCommandes);
 
             DiscordEmbedBuilder builderAnniv = BuildEmbedAnniv(Program.anniversairesParser.json.Anniversaires);
