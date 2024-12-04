@@ -789,8 +789,8 @@ namespace LaGrueJaune.commands
 
             builderCommandes.AddField("Pour ajouter votre anniversaire", "```/ajoutanniv```", false);
             builderCommandes.AddField("Pour retirer votre anniversaire", "```/retraitanniv```", false);
-            builderCommandes.AddField("Pour que le bot vous souhaite bon anniversaire", "```/bonannivon```", false);
-            builderCommandes.AddField("Pour ne pas que le bot vous souhaite bon anniversaire", "```/bonannivoff```", false);
+            builderCommandes.AddField("Pour que le bot vous souhaite un bon anniversaire", "```/bonannivon```", false);
+            builderCommandes.AddField("Pour que le bot vous ne vous souhaite pas un bon anniversaire", "```/bonannivoff```", false);
 
             await ctx.Channel.SendMessageAsync(builderCommandes);
 
