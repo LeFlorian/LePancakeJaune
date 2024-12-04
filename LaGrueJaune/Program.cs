@@ -104,6 +104,7 @@ namespace LaGrueJaune
             Client.ScheduledGuildEventUserAdded += OnUserJoinEvent;
             Client.ScheduledGuildEventUserRemoved += OnUserLeaveEvent;
             Client.ScheduledGuildEventCompleted += OnEventCompleted;
+            Client.VoiceStateUpdated += OnUserJoinOrLeaveVoiceChannel;
             Client.UnknownEvent += UnknownEvent;
  
 
@@ -136,7 +137,7 @@ namespace LaGrueJaune
 
             await Client.ConnectAsync();
 
-            // Trigger pour vérifier les anniversaires à 8h chaque matin
+            // Trigger pour lancer les fonction à 8h chaque matin
             var trigger = TriggerBuilder.Create()
                 .WithDailyTimeIntervalSchedule(s => s
                     .WithIntervalInHours(24)
@@ -148,7 +149,7 @@ namespace LaGrueJaune
             StdSchedulerFactory factory = new StdSchedulerFactory();
             IScheduler scheduler = await factory.GetScheduler();
             await scheduler.Start();
-            await scheduler.ScheduleJob(JobBuilder.Create<birthdayWatch>().Build(), trigger);
+            await scheduler.ScheduleJob(JobBuilder.Create<commonWatch>().Build(), trigger);
         
             await Task.Delay(-1);
         }
@@ -180,14 +181,7 @@ namespace LaGrueJaune
             if (args.Author.IsBot || args.Message.Content.StartsWith(config.prefix))
                 return;
 
-            JSONHistory.Description newMessage = new JSONHistory.Description()
-            {
-                author = args.Author.Username,
-                publicationDate = DateTime.Now,
-                link = args.Message.JumpLink
-            };
-
-            await historyParser.AddHistory(args.Author.Id, newMessage);
+            await AddDescriptionInHistory(args.Author.Id, args.Author.Username, DateTime.Now, args.Message.JumpLink);
 
             return;
         }
@@ -324,9 +318,14 @@ namespace LaGrueJaune
         }
 
         //USER JOIN
-        private static Task OnUserJoinEvent(DiscordClient sender, ScheduledGuildEventUserAddEventArgs args)
+        private static async Task OnUserJoinEvent(DiscordClient sender, ScheduledGuildEventUserAddEventArgs args)
         {
-            return Task.CompletedTask;
+            if (args.User.IsBot)
+                return;
+
+            await AddDescriptionInHistory(args.User.Id, args.User.Username, DateTime.Now);
+
+            return;
         }
 
         //USER LEAVE
@@ -338,6 +337,16 @@ namespace LaGrueJaune
         private static Task UnknownEvent(DiscordClient sender, UnknownEventArgs args)
         {
             return Task.CompletedTask;
+        }
+
+        private static async Task OnUserJoinOrLeaveVoiceChannel(DiscordClient sender, VoiceStateUpdateEventArgs args)
+        {
+            if (args.User.IsBot)
+                return;
+
+            await AddDescriptionInHistory(args.User.Id, args.User.Username, DateTime.Now);
+
+            return;
         }
         #endregion
 
@@ -437,6 +446,23 @@ namespace LaGrueJaune
             return message;
         }
 
+        private static async Task AddDescriptionInHistory(ulong authorID, string authorName, DateTime publicationDate, Uri messageLink = default)
+        {
+            JSONHistory.Description newMessage = new JSONHistory.Description()
+            {
+                author = authorName,
+                publicationDate = publicationDate
+            };
+
+            if (messageLink != default)
+                newMessage.link = messageLink;
+
+            await historyParser.AddHistory(authorID, newMessage);
+
+            return;
+        }
+
+
         public static async Task MakePurgeList()
         {
             userToPurge = new JSONHistory();
@@ -448,7 +474,7 @@ namespace LaGrueJaune
 
                 if (differenceInDays > 35) 
                 {
-                    mostRecentMessage.Value.kickReason = $"Tu as été kick pour innactivé ({differenceInDays} jours depuis le dernier message)";
+                    mostRecentMessage.Value.kickReason = $"Tu as été kick pour innactivé ({differenceInDays} jours depuis la dernière activité)";
                     AddUserPurge(mostRecentMessage.Key, mostRecentMessage.Value);
                 }
                 else if (differenceInDays > 10)
@@ -519,6 +545,49 @@ namespace LaGrueJaune
                     }
                 }
             }
+        }
+
+        public static async void CheckAndSendMessageToPreventPrugeIsComming()
+        {
+            foreach (var mostRecentMessage in historyParser.json.History)
+            {
+                double differenceInDays = Math.Ceiling((DateTime.Now - mostRecentMessage.Value.publicationDate).TotalDays);
+                mostRecentMessage.Value.numberOfDay = differenceInDays;
+
+                if (differenceInDays > 30)
+                {
+                    if (mostRecentMessage.Value.prevent.amount <= 0)
+                    {
+                        //Je lui envoie un message pour lui dire qu'il doit parler sur le serveur
+
+                        var member = await Guild.GetMemberAsync(mostRecentMessage.Key);
+                        var dmChannel = await member.CreateDmChannelAsync();
+                        await dmChannel.SendMessageAsync(
+                            "Bonjour,\n" +
+                            "Afin de garder le serveur de La Grue Jaune actif nous retirons les personnes inactives régulièrement. Tu reçois ce message car cela fait plus de 30 jours que tu es inactif.\n" +
+                            "Si tu ne souhaite pas être retiré merci d'envoyer un message sur le serveur.\n" +
+                            "-# Ceci est un message automatique.");
+
+
+                        mostRecentMessage.Value.prevent.amount += 1;
+                        mostRecentMessage.Value.prevent.last = DateTime.Now;
+
+                        await historyParser.AddHistory(mostRecentMessage.Key, mostRecentMessage.Value);
+                    }
+                    else
+                    {
+                        double lastPreventDay = Math.Ceiling((DateTime.Now - mostRecentMessage.Value.prevent.last).TotalDays);
+
+                        if (lastPreventDay > 60)
+                        {
+                            mostRecentMessage.Value.prevent.amount = 0;
+
+                            await historyParser.AddHistory(mostRecentMessage.Key, mostRecentMessage.Value);
+                        }
+                    }
+                }
+            }
+
         }
 
         public static bool HasRole(DiscordMember member, string roleName)
@@ -667,14 +736,24 @@ namespace LaGrueJaune
                    && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
         }
 
-        // Tâche qui souhaite bon anniversaire en comparant la date du jour avec la date des anniversaires
-        public static Task wishBirthday()
+        public static Task OnHeightAM()
         {
-            string currentDate = DateTime.Now.ToString().Substring(0,5);
+            CheckAndSendMessageToPreventPrugeIsComming();
 
-            foreach (KeyValuePair<string, MemberAnniversaire> memberAnniv in Program.anniversairesParser.json.Anniversaires)
+            WishBirthday();
+
+            return Task.CompletedTask;
+        }
+
+        // Tâche qui souhaite bon anniversaire en comparant la date du jour avec la date des anniversaires
+        public static Task WishBirthday()
+        {
+            string currentDate = DateTime.Now.ToString().Substring(0, 5);
+
+            foreach (KeyValuePair<string, MemberAnniversaire> memberAnniv in anniversairesParser.json.Anniversaires)
             {
-                if (currentDate.Equals(memberAnniv.Value.dateAnniv) && !memberAnniv.Value.ignored){
+                if (currentDate.Equals(memberAnniv.Value.dateAnniv) && !memberAnniv.Value.ignored)
+                {
                     Client.SendMessageAsync(Guild.GetChannel(config.ID_generalChannel), $"Bon anniversaire <@{memberAnniv.Key}> ! :partying_face: :tada:");
                 }
             };

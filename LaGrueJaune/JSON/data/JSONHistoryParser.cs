@@ -64,8 +64,16 @@ namespace LaGrueJaune.config
             public double numberOfDay;
             public Uri link;
             public bool isKickable = true;
-            public string kickReason = "Si tu reçois ça, c'est probablement que je me suis trompé et que je t'ai kick par inadvertance..."; 
+            public string kickReason = "Si tu reçois ça, c'est probablement que je me suis trompé et que je t'ai kick par inadvertance...";
+
+            public Prevent prevent = new Prevent();
+            public class Prevent
+            {
+                public int amount;
+                public DateTime last;
+            }
         }
+
 
         public Dictionary<ulong, Description> History = new Dictionary<ulong, Description>();
     }

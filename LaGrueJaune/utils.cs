@@ -164,11 +164,11 @@ namespace LaGrueJaune
     }
 
     // Job de bon anniversaire exécuté par trigger à 8h chaque matin
-    public class birthdayWatch : IJob
+    public class commonWatch : IJob
     {
         async Task IJob.Execute(IJobExecutionContext context)
         {
-            await Program.wishBirthday();
+            await Program.OnHeightAM();
         }
     }
 }
