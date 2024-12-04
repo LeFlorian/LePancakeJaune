@@ -19,6 +19,8 @@ using static LaGrueJaune.Utils;
 using static LaGrueJaune.config.JSONAnniversaires;
 using System.Security.Policy;
 using System.Diagnostics.Metrics;
+using Microsoft.Scripting.Hosting;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace LaGrueJaune
 {
@@ -103,6 +105,7 @@ namespace LaGrueJaune
             Client.ScheduledGuildEventUserRemoved += OnUserLeaveEvent;
             Client.ScheduledGuildEventCompleted += OnEventCompleted;
             Client.UnknownEvent += UnknownEvent;
+ 
 
             #endregion
 
@@ -226,29 +229,46 @@ namespace LaGrueJaune
             try
             {
                 ulong userId = Convert.ToUInt64(args.Id.Split('-')[0]);
-                int buttonId = Int32.Parse(args.Id.Split('-')[1]);
-                DiscordEmbed embed = args.Message.Embeds.First();
-
-                List<string> list = Program.notesParser.json.Notes[userId].listeNotes;
-
-                if (buttonId.Equals(1))
+                
+                // Ajout d'une note
+                if ("Add".Equals(args.Id.Split('-')[1]))
                 {
-                    return;
+                    TextInputComponent textInput = new TextInputComponent("test", "value");
+                    IEnumerable<DiscordComponent> components = new DiscordComponent[] { textInput};
+                    DiscordMessageBuilder message = new DiscordMessageBuilder();
+                    DiscordInteractionResponseBuilder builder = new DiscordInteractionResponseBuilder(message);
+                    Console.WriteLine("test1");
+                    await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage, builder);
+                    Console.WriteLine("test2");
                 }
 
-                // Page suivante
-                else if (buttonId % 2 == 0 && buttonId / 2 < list.Count)
+                // Parcours des notes
+                else
                 {
-                    var action = buildActionNotes(userId, embed.Thumbnail.Url.ToString(), list[buttonId / 2], buttonId / 2 + 1);
-                    await args.Message.ModifyAsync(action);
+                    int buttonId = Int32.Parse(args.Id.Split('-')[1]);
+                    DiscordEmbed embed = args.Message.Embeds.First();
+
+                    List<string> list = Program.notesParser.json.Notes[userId].listeNotes;
+
+                    if (buttonId.Equals(1))
+                    {
+                        return;
+                    }
+
+                    // Page suivante
+                    else if (buttonId % 2 == 0 && buttonId / 2 < list.Count)
+                    {
+                        var action = buildActionNotes(userId, embed.Thumbnail.Url.ToString(), list[buttonId / 2], buttonId / 2 + 1);
+                        await args.Message.ModifyAsync(action);
+                    }
+                    // Page précédente
+                    else if (buttonId % 2 != 0 && buttonId >= 3)
+                    {
+                        var action = buildActionNotes(userId, embed.Thumbnail.Url.ToString(), list[(buttonId - 1) / 2 - 1], (buttonId - 1) / 2);
+                        await args.Message.ModifyAsync(action);
+                    }
+                    await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage);
                 }
-                // Page précédente
-                else if (buttonId % 2 != 0 && buttonId >= 3)
-                {
-                    var action = buildActionNotes(userId, embed.Thumbnail.Url.ToString(), list[(buttonId - 1) / 2 - 1], (buttonId - 1) / 2);
-                    await args.Message.ModifyAsync(action);
-                }
-                await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage);
             }
             catch { }
             #endregion

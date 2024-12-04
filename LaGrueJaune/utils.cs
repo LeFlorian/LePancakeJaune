@@ -82,7 +82,7 @@ namespace LaGrueJaune
 
             DiscordEmbedBuilder builder = new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Gold)
-                .WithTitle("Calendrier des anniversaires")
+                .WithTitle("Calendrier")
                 .WithThumbnail(Program.config.URL_annivPicture)
                 .WithTimestamp(System.DateTime.Now)
                 ;

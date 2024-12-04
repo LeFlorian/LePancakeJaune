@@ -623,7 +623,8 @@ namespace LaGrueJaune.commands
                 {
                     next.Disable();
                 }
-                IEnumerable<DiscordComponent> components = new DiscordComponent[] { previous, next };
+                var add = new DiscordButtonComponent(ButtonStyle.Success, $"{member.Id}-Add", "Ajout", false);
+                IEnumerable<DiscordComponent> components = new DiscordComponent[] { previous, next, add };
                 DiscordMessageBuilder message = new DiscordMessageBuilder().WithEmbed(builder);
                 DiscordFollowupMessageBuilder reponse = new DiscordFollowupMessageBuilder(message).AddComponents(components);
 
@@ -783,13 +784,13 @@ namespace LaGrueJaune.commands
 
             DiscordEmbedBuilder builderCommandes = new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Gold)
-                .WithTitle($"Commandes pour gérer son anniversaire")
+                .WithTitle($"Commandes")
                 ;
 
-            builderCommandes.AddField("Ajouter ton anniversaire", "```/ajoutanniv```", false);
-            builderCommandes.AddField("Retirer ton anniversaire", "```/retraitanniv```", false);
-            builderCommandes.AddField("Pour que la grue jaune te souhaite ton anniversaire", "```/bonannivon```", false);
-            builderCommandes.AddField("Pour ne pas que la grue jaune te souhaite ton anniversaire", "```/bonannivoff```", false);
+            builderCommandes.AddField("Pour ajouter votre anniversaire", "```/ajoutanniv```", false);
+            builderCommandes.AddField("Pour retirer votre anniversaire", "```/retraitanniv```", false);
+            builderCommandes.AddField("Pour que le bot vous souhaite bon anniversaire", "```/bonannivon```", false);
+            builderCommandes.AddField("Pour ne pas que le bot vous souhaite bon anniversaire", "```/bonannivoff```", false);
             await ctx.Channel.SendMessageAsync(builderCommandes);
 
             DiscordEmbedBuilder builderAnniv = BuildEmbedAnniv(Program.anniversairesParser.json.Anniversaires);
