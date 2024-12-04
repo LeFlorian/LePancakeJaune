@@ -137,7 +137,7 @@ namespace LaGrueJaune
 
             await Client.ConnectAsync();
 
-            // Trigger pour lancer les fonction à 8h chaque matin
+            // Trigger pour lancer les fonctions à 8h chaque matin
             var trigger = TriggerBuilder.Create()
                 .WithDailyTimeIntervalSchedule(s => s
                     .WithIntervalInHours(24)
@@ -145,7 +145,7 @@ namespace LaGrueJaune
                 )
                 .Build();
 
-            // Planification du job birthdayWatch déclenché par le trigger à 8h
+            // Planification du job commonWatch déclenché par le trigger à 8h
             StdSchedulerFactory factory = new StdSchedulerFactory();
             IScheduler scheduler = await factory.GetScheduler();
             await scheduler.Start();
