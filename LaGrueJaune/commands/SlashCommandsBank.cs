@@ -623,8 +623,7 @@ namespace LaGrueJaune.commands
                 {
                     next.Disable();
                 }
-                var add = new DiscordButtonComponent(ButtonStyle.Success, $"{member.Id}-Add", "Ajout", false);
-                IEnumerable<DiscordComponent> components = new DiscordComponent[] { previous, next, add };
+                IEnumerable<DiscordComponent> components = new DiscordComponent[] { previous, next};
                 DiscordMessageBuilder message = new DiscordMessageBuilder().WithEmbed(builder);
                 DiscordFollowupMessageBuilder reponse = new DiscordFollowupMessageBuilder(message).AddComponents(components);
 
