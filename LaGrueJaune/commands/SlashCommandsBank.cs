@@ -784,6 +784,7 @@ namespace LaGrueJaune.commands
             DiscordEmbedBuilder builderCommandes = new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Gold)
                 .WithTitle($"Commandes")
+                .WithThumbnail("https://i.imgur.com/wmZ63pr.png")
                 ;
 
             builderCommandes.AddField("Pour ajouter votre anniversaire", "```/ajoutanniv```", false);
