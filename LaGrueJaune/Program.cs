@@ -554,19 +554,32 @@ namespace LaGrueJaune
                 double differenceInDays = Math.Ceiling((DateTime.Now - mostRecentMessage.Value.publicationDate).TotalDays);
                 mostRecentMessage.Value.numberOfDay = differenceInDays;
 
-                if (differenceInDays > 30)
+                DiscordMember member = await Guild.GetMemberAsync(mostRecentMessage.Key);
+                string messageToSend = "Bonjour,\n" +
+                            "Afin de garder le serveur de La Grue Jaune actif nous retirons les personnes inactives régulièrement. Tu reçois ce message car cela fait plus de 30 jours que tu es inactif.\n" +
+                            "Si tu ne souhaite pas être retiré merci d'envoyer un message sur le serveur.\n" +
+                            "-# Ceci est un message automatique.";
+                int dayChecker = 30;
+
+                //Check si l'utilisateur a le role de nouveau
+                DiscordRole newMemberRole = Guild.GetRole(1019575287576543252);
+                if (member.Roles.Contains(newMemberRole))
+                {
+                    //Si l'utilisateur a le rôle de nouveau alors les jours à check sont plus court.
+                    dayChecker = 10;
+                    messageToSend = "Bonjour,\n" +
+                            "Afin de garder le serveur de La Grue Jaune actif nous retirons les personnes inactives régulièrement. Tu reçois ce message car cela fait plus de 10 jours que ta présentation est manquante, incomplète ou non conforme.\n" +
+                            "Si tu ne souhaite pas être retiré merci d'envoyer un message sur le serveur.\n" +
+                            "-# Ceci est un message automatique.";
+                }
+
+                if (differenceInDays > dayChecker)
                 {
                     if (mostRecentMessage.Value.prevent.amount <= 0)
                     {
                         //Je lui envoie un message pour lui dire qu'il doit parler sur le serveur
-
-                        var member = await Guild.GetMemberAsync(mostRecentMessage.Key);
                         var dmChannel = await member.CreateDmChannelAsync();
-                        await dmChannel.SendMessageAsync(
-                            "Bonjour,\n" +
-                            "Afin de garder le serveur de La Grue Jaune actif nous retirons les personnes inactives régulièrement. Tu reçois ce message car cela fait plus de 30 jours que tu es inactif.\n" +
-                            "Si tu ne souhaite pas être retiré merci d'envoyer un message sur le serveur.\n" +
-                            "-# Ceci est un message automatique.");
+                        await dmChannel.SendMessageAsync(messageToSend);
 
 
                         mostRecentMessage.Value.prevent.amount += 1;
