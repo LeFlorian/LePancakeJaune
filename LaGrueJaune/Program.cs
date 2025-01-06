@@ -7,20 +7,16 @@ using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
 using LaGrueJaune.commands;
 using LaGrueJaune.config;
-using Quartz.Impl;
 using Quartz;
+using Quartz.Impl;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using static LaGrueJaune.Utils;
 using static LaGrueJaune.config.JSONAnniversaires;
-using System.Security.Policy;
-using System.Diagnostics.Metrics;
-using Microsoft.Scripting.Hosting;
-using static System.Net.Mime.MediaTypeNames;
+using static LaGrueJaune.Utils;
 
 namespace LaGrueJaune
 {
@@ -569,7 +565,7 @@ namespace LaGrueJaune
                     dayChecker = 10;
                     messageToSend = "Bonjour,\n" +
                             "Afin de garder le serveur de La Grue Jaune actif nous retirons les personnes inactives régulièrement. Tu reçois ce message car cela fait plus de 10 jours que ta présentation est manquante, incomplète ou non conforme.\n" +
-                            "Si tu ne souhaite pas être retiré merci d'envoyer un message sur le serveur.\n" +
+                            "Si tu ne souhaite pas être retiré merci de compléter ta présentation.\n" +
                             "-# Ceci est un message automatique.";
                 }
 
