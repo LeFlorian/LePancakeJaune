@@ -1,22 +1,15 @@
 using DSharpPlus;
 using DSharpPlus.Entities;
-using DSharpPlus.EventArgs;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.SlashCommands.Attributes;
 using LaGrueJaune.config;
-using Microsoft.Scripting.Generation;
-using Quartz.Util;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Metrics;
 using System.Linq;
-using System.Net.NetworkInformation;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using static LaGrueJaune.config.JSONAnniversaires;
 using static LaGrueJaune.Utils;
-using static Microsoft.Scripting.Hosting.Shell.ConsoleHostOptions;
 
 namespace LaGrueJaune.commands
 {
@@ -449,7 +442,49 @@ namespace LaGrueJaune.commands
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
             DiscordMessageBuilder message = new DiscordMessageBuilder(currentEditingMessage);
 
+            ulong roleID;
+            if (role != default)
+                roleID = role.Id;
+            else roleID = 0;
+
+            var buttons = new List<DiscordComponent>();
+            foreach (DiscordComponent dc in currentEditingMessage.Components)
+            {
+                if (dc is DiscordActionRowComponent)
+                {
+                    var row = (DiscordActionRowComponent)dc;
+                    buttons.AddRange(row.Components);
+                }
+            }
+
+            // Création du bouton
+            var newButton = new DiscordButtonComponent(
+                bs,
+                $"{Guid.NewGuid()}:{function}:{roleID}", // ID du bouton
+                label,
+                !active // Disabled ou non
+            );
+
+            buttons.Add(newButton);
+
+            // Organisation des composants en lignes
+            var actionRows = new List<DiscordActionRowComponent>();
+            foreach (var chunk in Utils.Chunk(buttons, 5))
+            {
+                var actionRow = new DiscordActionRowComponent(chunk);
+                actionRows.Add(actionRow); // Ajoute chaque ligne complète à la liste
+            }
+
+            // Ajoute les lignes au message
+            message.ClearComponents(); // Nettoie les anciens composants
+            foreach (var actionRow in actionRows)
+            {
+                message.AddComponents(actionRow.Components); // Ajoute chaque ligne complète
+            }
+
+            #region tests
             // Récupération et regroupement des composants existants
+            /*
             var currentComponents = new List<DiscordComponent>();
 
             foreach (var row in currentEditingMessage.Components)
@@ -464,18 +499,10 @@ namespace LaGrueJaune.commands
 
             Console.WriteLine(currentComponents.Count);
             foreach (var comp in currentComponents)
-                Console.WriteLine(comp.ToString());
+                Console.WriteLine(comp.ToString());*/
 
-            // Création du bouton
-            var newButton = new DiscordButtonComponent(
-                bs,
-                $"{Guid.NewGuid()}:{function}:{role.Id}", // ID du bouton
-                label,
-                !active // Disabled ou non
-            );
-
-            currentComponents.Add(newButton);
-            message.AddComponents(currentComponents);
+            //currentComponents.Add(newButton);
+            //message.AddComponents(currentComponents);
 
             /*
             // Organisation des composants en lignes
@@ -492,9 +519,8 @@ namespace LaGrueJaune.commands
             {
                 message.AddComponents(actionRow); // Ajoute chaque ligne complète
             }*/
-
+            #endregion
             Console.WriteLine("End : "+message.Components.Count);
-
 
             try
             {
