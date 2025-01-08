@@ -165,15 +165,15 @@ namespace LaGrueJaune
                 yield return chunk.ToArray();
         }
 
-    public static DiscordEmbedBuilder NewsBuilder(string bclUrl, HtmlWeb web, HtmlDocument doc, int newsIndex, Dictionary<string, string> NewsFeedTmp)
+    public static DiscordEmbedBuilder NewsBuilder(string bclUrl, HtmlWeb web, HtmlDocument doc, int newsIndex, List<string> NewsFeedTmp)
         {
             int i = newsIndex;
             string titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/header/h3/a").InnerText.Trim();
             string beginDate = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/p").InnerText.Trim();
-            NewsFeedTmp.Add(titre, beginDate);
+            NewsFeedTmp.Add(titre + " - " + beginDate);
 
             // On vérifie si l'évènement a déjà été traité ou non avec la même date de début
-            if (Program.newsFeedParser.json.NewsFeed.ContainsKey(titre) && Program.newsFeedParser.json.NewsFeed[titre] != null && Program.newsFeedParser.json.NewsFeed[titre].Equals(beginDate)){
+            if (Program.newsFeedParser.json.NewsFeed.Contains(titre + " - " + beginDate)){   
                 return null;
             }
 
@@ -184,12 +184,14 @@ namespace LaGrueJaune
             {
                 types += type.InnerText.Trim() + ", ";
             }
+
             types = types.Trim().Trim(',');
             string lieu = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/div/span[i[@class=\"fa-solid fa-map-pin fa-fw\"]]").InnerText.Trim();
             HtmlNode payantTmp = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/div/span[i[@class=\"fa-solid fa-money-bill-1-wave fa-fw\"]]");
             HtmlNode gratuitTmp = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/div/span[i[@class=\"fa-regular fa-face-smile fa-fw\"]]");
             HtmlNode endDateTmp = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/div/span[i[@class=\"fa-solid fa-calendar-day fa-fw\"]]");
             string prix = "";
+
             if (payantTmp != null)
             {
                 prix = payantTmp.InnerText.Trim();
@@ -207,6 +209,7 @@ namespace LaGrueJaune
             HtmlNode descTmp = descDoc.DocumentNode.SelectSingleNode("//*[contains(@id, 'post')]//*[text()][1]");
             string imgUrl = descDoc.DocumentNode.SelectSingleNode("//*[contains(@id, 'post')]//img").Attributes["src"].Value; ;
             string desc = "Pas de description";
+
             if (descTmp != null)
             {
                 desc = descTmp.InnerText.Trim();

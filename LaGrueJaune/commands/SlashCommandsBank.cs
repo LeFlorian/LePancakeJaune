@@ -1226,10 +1226,10 @@ namespace LaGrueJaune.commands
         [SlashCommandPermissions(Permissions.ModerateMembers)]
         public async Task newsFeed(InteractionContext ctx)
         {
-            await ctx.Interaction.DeferAsync(ephemeral: false);
+            await ctx.Interaction.DeferAsync(ephemeral: true);
 
             // Liste temporaire des évènements pour remettre à jour la liste stockée
-            Dictionary<string, string> NewsFeedTmp = new Dictionary<string, string>();
+            List<string> NewsFeedTmp = new List<string>();
 
             // Traitement de la première page (évènements en cours et proches)
             string bclUrl = "https://www.bigcitylife.fr/agenda/";
@@ -1237,7 +1237,7 @@ namespace LaGrueJaune.commands
             HtmlDocument doc = web.Load(bclUrl);
             int i = 1;
             var titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/header/h3/a");
-            while (titre != null)
+            while (titre != null && !"".Equals(titre))
             {
                 DiscordEmbedBuilder embedBuilder = NewsBuilder(bclUrl, web, doc, i, NewsFeedTmp);
                 if (embedBuilder != null)

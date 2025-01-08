@@ -23,7 +23,7 @@ namespace LaGrueJaune.config
             using (StreamReader sr = new StreamReader("JSON/newsFeed.json"))
             {
                 string reader = await sr.ReadToEndAsync();
-                Dictionary<string, string> data = JsonConvert.DeserializeObject<Dictionary<string, string>>(reader);
+                List<string> data = JsonConvert.DeserializeObject<List<string>>(reader);
 
                 this.json = new JSONNewsFeed();
                 this.json.NewsFeed = data;
@@ -54,10 +54,10 @@ namespace LaGrueJaune.config
                 await ReadJSON();
             }
 
-            // On ne traite pas l'évènement s'il est déjà listé sauf si la date de début est différente
-            if (!(json.NewsFeed.ContainsKey(titre) && json.NewsFeed[titre] != null && json.NewsFeed[titre].Equals(debut)))
+            // On ne traite pas l'évènement s'il est déjà listé avec la même date de début
+            if (!json.NewsFeed.Contains(titre + " - " + debut))
             {
-                json.NewsFeed.Add(titre, debut);
+                json.NewsFeed.Add(titre + " - " + debut);
             }
 
             await WriteJSON();
@@ -67,6 +67,6 @@ namespace LaGrueJaune.config
     public class JSONNewsFeed
     {
 
-        public Dictionary<string, string> NewsFeed = new Dictionary<string, string>();
+        public List<string> NewsFeed = new List<string>();
     }
 }
