@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{255C5A6C-97BD-4EA0-8E45-2FAC443F45DE}</ProjectGuid>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Exe</OutputType>
     <RootNamespace>LaGrueJaune</RootNamespace>
     <AssemblyName>LaGrueJaune</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
@@ -53,6 +53,9 @@
     <Reference Include="DSharpPlus.SlashCommands, Version=4.5.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DSharpPlus.SlashCommands.4.5.0\lib\netstandard2.0\DSharpPlus.SlashCommands.dll</HintPath>
     </Reference>
+    <Reference Include="HtmlAgilityPack, Version=1.11.71.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
+      <HintPath>..\packages\HtmlAgilityPack.1.11.71\lib\Net45\HtmlAgilityPack.dll</HintPath>
+    </Reference>
     <Reference Include="IronPython, Version=3.4.1.0, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
       <HintPath>..\packages\IronPython.3.4.1\lib\net462\IronPython.dll</HintPath>
     </Reference>
@@ -64,9 +67,6 @@
     </Reference>
     <Reference Include="IronPython.Wpf, Version=3.4.1.0, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
       <HintPath>..\packages\IronPython.3.4.1\lib\net462\IronPython.Wpf.dll</HintPath>
-    </Reference>
-    <Reference Include="LibreTranslate.Net, Version=1.0.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\LibreTranslate.Net.1.0.1\lib\netstandard1.1\LibreTranslate.Net.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.8.0.0\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
@@ -289,6 +289,7 @@
     <Compile Include="commands\SlashCommandsBank.cs" />
     <Compile Include="commands\CommandsBank.cs" />
     <Compile Include="JSON\config\JSONConfigReader.cs" />
+    <Compile Include="JSON\data\JSONNewsFeedParser.cs" />
     <Compile Include="JSON\data\JSONAnniversairesParser.cs" />
     <Compile Include="JSON\data\JSONConversationParser.cs" />
     <Compile Include="JSON\data\JSONRolesParser.cs" />

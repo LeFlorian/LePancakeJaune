@@ -7,6 +7,10 @@ using Quartz;
 using System.Threading.Tasks;
 using LaGrueJaune.config;
 using static LaGrueJaune.config.JSONAnniversaires;
+using HtmlAgilityPack;
+using System.Runtime.CompilerServices;
+using IronPython.Compiler.Ast;
+using System.Diagnostics.Eventing.Reader;
 
 namespace LaGrueJaune
 {
@@ -118,10 +122,11 @@ namespace LaGrueJaune
                 type = "Bar :beers:";
             }
 
-            string reco = $"{url}\n" +
+            string reco = $"### {nom}\n" +
+                $"{url}\n\n" +
                 $":money_with_wings: {prix} :star: {note}/5 :adult: <@{member.Id}>\n" +
-                $"{com}" +
-                $"```{adresse}```";
+                $"> {com}\n\n" +
+                $"```{adresse}```\n";
 
             string com2 = "Cherchez plus j'ai trouvé la meilleure adresse de Nantes, no troll, 300 avis, 4,9 étoiles sur 5 et c'est mérité.Cuisine Ethiopienne/Erythréenne, la cuisinière/patronne (nommée Fruta) est bonne vibe, et sa bouffe incroyable, le serveur (son mari?) est super sympa aussi, le lieu est cosy (attention par contre quand vous ressortez la ville, ses bruits, son odeur, est agressive), les prix sont abordables, il y avait de la place pour 2 sans résa un samedi à 13h00...Edith Piaf : En lisant les quelques avis négatifs parmis les 300, j'ajoute quelques infos, oui on mange à la main, oui c'est un peu épicé (mais en vrai pas tant même pour un blanc habitué à la crême normande plus qu'au chili comme moi), oui il n'y avait pas de dessert (car fait à la main et elle n'en avait pas fait cette fois ci), un peu d'attente en effet, pas testé les plats végé/végan donc je sais pas leur qualité, tout ça ne change pas ma note !";
             string com21 = com2.Substring(0, 800);
@@ -133,11 +138,9 @@ namespace LaGrueJaune
 
             DiscordEmbedBuilder builder = new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Gold)
-                .WithTitle("Bars")
-                .AddField(nom, reco, false)
-                .AddField("Chez Fruta", reco21, false)
-                .AddField("** **", reco22, false)
-                .AddField(nom, reco, true)
+                .WithDescription(reco)
+                //.AddField("Chez Fruta", reco21, false)
+                //.AddField("** **", reco22, false)
                 ;
 
             return builder;
@@ -160,6 +163,72 @@ namespace LaGrueJaune
 
             if (chunk.Count > 0)
                 yield return chunk.ToArray();
+        }
+
+    public static DiscordEmbedBuilder NewsBuilder(string bclUrl, HtmlWeb web, HtmlDocument doc, int newsIndex, Dictionary<string, string> NewsFeedTmp)
+        {
+            int i = newsIndex;
+            string titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/header/h3/a").InnerText.Trim();
+            string beginDate = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/p").InnerText.Trim();
+            NewsFeedTmp.Add(titre, beginDate);
+
+            // On vérifie si l'évènement a déjà été traité ou non avec la même date de début
+            if (Program.newsFeedParser.json.NewsFeed.ContainsKey(titre) && Program.newsFeedParser.json.NewsFeed[titre] != null && Program.newsFeedParser.json.NewsFeed[titre].Equals(beginDate)){
+                return null;
+            }
+
+            string url = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/header/h3/a").Attributes["href"].Value;
+            var tmpTypes = doc.DocumentNode.SelectNodes($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/div/span[i[@class=\"fa-solid fa-tag fa-fw\"]]");
+            string types = "";
+            foreach (HtmlNode type in tmpTypes)
+            {
+                types += type.InnerText.Trim() + ", ";
+            }
+            types = types.Trim().Trim(',');
+            string lieu = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/div/span[i[@class=\"fa-solid fa-map-pin fa-fw\"]]").InnerText.Trim();
+            HtmlNode payantTmp = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/div/span[i[@class=\"fa-solid fa-money-bill-1-wave fa-fw\"]]");
+            HtmlNode gratuitTmp = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/div/span[i[@class=\"fa-regular fa-face-smile fa-fw\"]]");
+            HtmlNode endDateTmp = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/div/span[i[@class=\"fa-solid fa-calendar-day fa-fw\"]]");
+            string prix = "";
+            if (payantTmp != null)
+            {
+                prix = payantTmp.InnerText.Trim();
+            }
+            else if (gratuitTmp != null) { prix = gratuitTmp.InnerText.Trim(); }
+            else { prix = "Tarif non renseigné"; }
+
+            string endDate = "";
+            if (endDateTmp != null)
+            {
+                endDate = " - " + endDateTmp.InnerText.Trim();
+            }
+
+            HtmlDocument descDoc = web.Load(url);
+            HtmlNode descTmp = descDoc.DocumentNode.SelectSingleNode("//*[contains(@id, 'post')]//*[text()][1]");
+            string imgUrl = descDoc.DocumentNode.SelectSingleNode("//*[contains(@id, 'post')]//img").Attributes["src"].Value; ;
+            string desc = "Pas de description";
+            if (descTmp != null)
+            {
+                desc = descTmp.InnerText.Trim();
+            }
+            string evt = $"{System.Net.WebUtility.HtmlDecode(desc)}\n\n" +
+                $":cityscape: {types}\n" +
+                $":calendar: {beginDate}{endDate}\n" +
+                $":money_with_wings: {prix}\n" +
+                $":pushpin: {lieu}";
+
+            DiscordEmbedBuilder embedBuilder = new DiscordEmbedBuilder()
+            .WithColor(DiscordColor.Blurple)
+            .WithTitle(System.Net.WebUtility.HtmlDecode(titre))
+            .WithUrl(url)
+            .WithDescription(evt)
+            .WithThumbnail(imgUrl)
+            //.WithFooter("https://www.bigcitylife.fr/agenda/")
+            ;
+
+            Program.newsFeedParser.AddNews(titre, beginDate);
+            
+            return embedBuilder;
         }
     }
 

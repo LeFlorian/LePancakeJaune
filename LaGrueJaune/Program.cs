@@ -21,6 +21,7 @@ using System.Security.Policy;
 using System.Diagnostics.Metrics;
 using Microsoft.Scripting.Hosting;
 using static System.Net.Mime.MediaTypeNames;
+using HtmlAgilityPack;
 
 namespace LaGrueJaune
 {
@@ -48,6 +49,7 @@ namespace LaGrueJaune
         public static JSONAnniversairesParser anniversairesParser;
         public static JSONRolesParser rolesParser;
         public static JSONHistory userToPurge;
+        public static JSONNewsFeedParser newsFeedParser;
 
         public static int purgeListPageIndex = 1;
         public static int numberOfUserPerPages = 20;
@@ -74,6 +76,8 @@ namespace LaGrueJaune
             await anniversairesParser.ReadJSON();
             rolesParser = new JSONRolesParser();
             await rolesParser.ReadJSON();
+            newsFeedParser = new JSONNewsFeedParser();
+            await newsFeedParser.ReadJSON();
 
             #endregion
 
@@ -742,6 +746,8 @@ namespace LaGrueJaune
 
             WishBirthday();
 
+            updateNewsFeed();
+
             return Task.CompletedTask;
         }
 
@@ -757,6 +763,54 @@ namespace LaGrueJaune
                     Client.SendMessageAsync(Guild.GetChannel(config.ID_generalChannel), $"Bon anniversaire <@{memberAnniv.Key}> ! :partying_face: :tada:");
                 }
             };
+            return Task.CompletedTask;
+        }
+
+        public static Task updateNewsFeed()
+        {
+
+            // Liste temporaire des évènements pour remettre à jour la liste stockée
+            Dictionary<string, string> NewsFeedTmp = new Dictionary<string, string>();
+
+            // Traitement de la première page (évènements en cours et proches)
+            string bclUrl = "https://www.bigcitylife.fr/agenda/";
+            HtmlWeb web = new HtmlAgilityPack.HtmlWeb();
+            HtmlDocument doc = web.Load(bclUrl);
+            int i = 1;
+            var titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/header/h3/a");
+            while (titre != null)
+            {
+                DiscordEmbedBuilder embedBuilder = NewsBuilder(bclUrl, web, doc, i, NewsFeedTmp);
+                if (embedBuilder != null)
+                {
+                    DiscordMessageBuilder builder = new DiscordMessageBuilder().AddEmbed(embedBuilder);
+                    Guild.GetChannel(config.ID_newsFeedChannel).SendMessageAsync(builder);
+                }
+
+                i += 1;
+                titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/header/h3/a");
+            }
+
+            // Traitement de la deuxième page (évènements à venir)
+            bclUrl = "https://www.bigcitylife.fr/agenda/liste/page/2/?hide_subsequent_recurrences=1";
+            doc = web.Load(bclUrl);
+            int j = 1;
+            titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{j}]/div/article/div/header/h3/a");
+            while (titre != null && !"".Equals(titre))
+            {
+                DiscordEmbedBuilder embedBuilder = NewsBuilder(bclUrl, web, doc, j, NewsFeedTmp);
+                if (embedBuilder != null)
+                {
+                    DiscordMessageBuilder builder = new DiscordMessageBuilder().AddEmbed(embedBuilder);
+                    Guild.GetChannel(config.ID_newsFeedChannel).SendMessageAsync(builder);
+                }
+
+                j += 1;
+                titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{j}]/div/article/div/header/h3/a");
+            }
+
+            Program.newsFeedParser.json.NewsFeed = NewsFeedTmp;
+            Program.newsFeedParser.WriteJSON();
             return Task.CompletedTask;
         }
 

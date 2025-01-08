@@ -3,10 +3,13 @@ using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.SlashCommands.Attributes;
+using HtmlAgilityPack;
 using LaGrueJaune.config;
 using Microsoft.Scripting.Generation;
+using Microsoft.Scripting.Hosting;
 using Quartz.Util;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Linq;
@@ -17,6 +20,7 @@ using System.Threading.Tasks;
 using static LaGrueJaune.config.JSONAnniversaires;
 using static LaGrueJaune.Utils;
 using static Microsoft.Scripting.Hosting.Shell.ConsoleHostOptions;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace LaGrueJaune.commands
 {
@@ -1177,15 +1181,79 @@ namespace LaGrueJaune.commands
 
             DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"Recommandation ajoutée.");
 
-            DiscordEmbedBuilder embedReco = BuildEmbedReco(ctx.User, nom, type, adresse, url, prix, com, note);
-            await ctx.Channel.SendMessageAsync(embedReco);
+            DiscordEmbedBuilder embedReco1 = BuildEmbedReco(ctx.User, nom, type, adresse, url, prix, com, note);
+            DiscordEmbedBuilder embedReco2 = BuildEmbedReco(ctx.User, nom, type, adresse, url, prix, com, note);
+            DiscordMessageBuilder message = new DiscordMessageBuilder().AddEmbed(embedReco1).AddEmbed(embedReco2);
+            message.WithContent("# :beers: Bars");
+
+            var outMessage = await ctx.Channel.SendMessageAsync(message);
+
+            DiscordMessageBuilder links = new DiscordMessageBuilder().WithContent($"## Catégories\n" +
+                $"[Bar]({outMessage.JumpLink}) " +
+                $"- [Restaurant]({outMessage.JumpLink}) ");
+            await ctx.Channel.SendMessageAsync(links);
 
             await ctx.Interaction.CreateFollowupMessageAsync(builder);
         }
         #endregion
 
+        #region newsfeed
+        [SlashCommand("newsFeed", "Affiche le fil d'actu")]
+        [SlashCommandPermissions(Permissions.ModerateMembers)]
+        public async Task newsFeed(InteractionContext ctx)
+        {
+            await ctx.Interaction.DeferAsync(ephemeral: false);
+
+            // Liste temporaire des évènements pour remettre à jour la liste stockée
+            Dictionary<string, string> NewsFeedTmp = new Dictionary<string, string>();
+
+            // Traitement de la première page (évènements en cours et proches)
+            string bclUrl = "https://www.bigcitylife.fr/agenda/";
+            HtmlWeb web = new HtmlAgilityPack.HtmlWeb();
+            HtmlDocument doc = web.Load(bclUrl);
+            int i = 1;
+            var titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/header/h3/a");
+            while (titre != null)
+            {
+                DiscordEmbedBuilder embedBuilder = NewsBuilder(bclUrl, web, doc, i, NewsFeedTmp);
+                if (embedBuilder != null)
+                {
+                    DiscordMessageBuilder builder = new DiscordMessageBuilder().AddEmbed(embedBuilder);
+                    await ctx.Channel.SendMessageAsync(builder);
+                }
+
+                i += 1;
+                titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/header/h3/a");
+            }
+
+            // Traitement de la deuxième page (évènements à venir)
+            bclUrl = "https://www.bigcitylife.fr/agenda/liste/page/2/?hide_subsequent_recurrences=1";
+            doc = web.Load(bclUrl);
+            int j = 1;
+            titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{j}]/div/article/div/header/h3/a");
+            while (titre != null && !"".Equals(titre))
+            {
+                DiscordEmbedBuilder embedBuilder = NewsBuilder(bclUrl, web, doc, j, NewsFeedTmp);
+                if (embedBuilder != null)
+                {
+                    DiscordMessageBuilder builder = new DiscordMessageBuilder().AddEmbed(embedBuilder);
+                    await ctx.Channel.SendMessageAsync(builder);
+                }
+
+                j += 1;
+                titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{j}]/div/article/div/header/h3/a");
+            }
+
+            Program.newsFeedParser.json.NewsFeed = NewsFeedTmp;
+            Program.newsFeedParser.WriteJSON();
+
+            DiscordFollowupMessageBuilder response = new DiscordFollowupMessageBuilder().WithContent("OK");
+            await ctx.Interaction.CreateFollowupMessageAsync(response);
+        }
+        #endregion
+
         #region Roles
-        
+
         [SlashCommandGroup("Roles", "Gestion des rôles et assignation")]
         public class Roles : ApplicationCommandModule
         {
