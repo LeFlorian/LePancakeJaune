@@ -7,21 +7,17 @@ using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
 using LaGrueJaune.commands;
 using LaGrueJaune.config;
-using Quartz.Impl;
 using Quartz;
+using Quartz.Impl;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using static LaGrueJaune.Utils;
 using static LaGrueJaune.config.JSONAnniversaires;
-using System.Security.Policy;
-using System.Diagnostics.Metrics;
-using Microsoft.Scripting.Hosting;
-using static System.Net.Mime.MediaTypeNames;
 using HtmlAgilityPack;
+using static LaGrueJaune.Utils;
 
 namespace LaGrueJaune
 {
@@ -29,8 +25,8 @@ namespace LaGrueJaune
     {
         [ChoiceName("Null")]
         Null,
-        [ChoiceName("AddRole")]
-        AddRole
+        [ChoiceName("AddOrRemoveRole")]
+        AddOrRemoveRole
     }
 
     internal class Program
@@ -282,15 +278,15 @@ namespace LaGrueJaune
 
                 switch (linkedFunction)
                 {
-                    case ButtonFunction.AddRole:
+                    case ButtonFunction.AddOrRemoveRole:
 
-                        await AddRoleToSelfUser(sender, args, linkedRole);
+                        await AddOrRemoveRoleToSelfUser(sender, args, linkedRole);
 
                         break;
 
                 }
 
-                await args.Interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Fonction: {linkedFunction}\nRole: {linkedRole}"));
+                await args.Interaction.CreateFollowupMessageAsync(new DiscordFollowupMessageBuilder().WithContent($"Fonction: {linkedFunction}\nRole: {linkedRole}"));
             }
             #endregion
         }
@@ -553,28 +549,49 @@ namespace LaGrueJaune
 
         public static async void CheckAndSendMessageToPreventPrugeIsComming()
         {
-            foreach (var mostRecentMessage in historyParser.json.History)
+            Console.WriteLine($"Checking for prevent messages: {historyParser.json.History.Count} history");
+            await historyParser.ClearAbsentUsers();
+            List<DiscordMember> warnedMembers = new List<DiscordMember>();
+
+            foreach (var mostRecentMessage in historyParser.json.historyClone)
             {
                 double differenceInDays = Math.Ceiling((DateTime.Now - mostRecentMessage.Value.publicationDate).TotalDays);
                 mostRecentMessage.Value.numberOfDay = differenceInDays;
 
-                if (differenceInDays > 30)
+                DiscordMember member = await Guild.GetMemberAsync(mostRecentMessage.Key);
+                int dayChecker = 30;
+                string messageToSend = "Bonjour,\n" +
+                            "Afin de garder le serveur de La Grue Jaune actif nous retirons les personnes inactives régulièrement. Tu reçois ce message car cela fait plus de 30 jours que tu es inactif.\n" +
+                            "Si tu ne souhaite pas être retiré merci d'envoyer un message sur le serveur.\n" +
+                            "-# Ceci est un message automatique.";
+
+
+                //Check si l'utilisateur a le role de nouveau
+                DiscordRole newMemberRole = Guild.GetRole(1019575287576543252);
+                if (member.Roles.Contains(newMemberRole))
+                {
+                    //Si l'utilisateur a le rôle de nouveau alors les jours à check sont plus court.
+                    dayChecker = 10;
+                    messageToSend = "Bonjour,\n" +
+                            "Afin de garder le serveur de La Grue Jaune actif nous retirons les personnes inactives régulièrement. Tu reçois ce message car cela fait plus de 10 jours que ta présentation est manquante, incomplète ou non conforme.\n" +
+                            "Si tu ne souhaite pas être retiré merci de compléter ta présentation.\n" +
+                            "-# Ceci est un message automatique.";
+                }
+
+                if (differenceInDays > dayChecker)
                 {
                     if (mostRecentMessage.Value.prevent.amount <= 0)
                     {
-                        //Je lui envoie un message pour lui dire qu'il doit parler sur le serveur
 
-                        var member = await Guild.GetMemberAsync(mostRecentMessage.Key);
+                        //Je lui envoie un message pour lui dire qu'il doit parler sur le serveur
                         var dmChannel = await member.CreateDmChannelAsync();
-                        await dmChannel.SendMessageAsync(
-                            "Bonjour,\n" +
-                            "Afin de garder le serveur de La Grue Jaune actif nous retirons les personnes inactives régulièrement. Tu reçois ce message car cela fait plus de 30 jours que tu es inactif.\n" +
-                            "Si tu ne souhaite pas être retiré merci d'envoyer un message sur le serveur.\n" +
-                            "-# Ceci est un message automatique.");
+                        await dmChannel.SendMessageAsync(messageToSend);
 
 
                         mostRecentMessage.Value.prevent.amount += 1;
                         mostRecentMessage.Value.prevent.last = DateTime.Now;
+                        
+                        warnedMembers.Add(member);
 
                         await historyParser.AddHistory(mostRecentMessage.Key, mostRecentMessage.Value);
                     }
@@ -591,6 +608,17 @@ namespace LaGrueJaune
                     }
                 }
             }
+
+            #region Log
+
+            string message = $"Prevent {warnedMembers.Count} members can be kick:\n";
+            foreach (var m in warnedMembers)
+            {
+                message += $"{m.DisplayName}\n";
+            }
+
+            Console.WriteLine(message);
+            #endregion
 
         }
 
@@ -815,22 +843,30 @@ namespace LaGrueJaune
         }
 
         #region Buttons functions
-        public static async Task AddRoleToSelfUser(DiscordClient sender, ComponentInteractionCreateEventArgs args, DiscordRole role)
+        public static async Task AddOrRemoveRoleToSelfUser(DiscordClient sender, ComponentInteractionCreateEventArgs args, DiscordRole role)
         {
             DiscordMember member = await args.Guild.GetMemberAsync(args.User.Id);
-            await member.GrantRoleAsync(role);
 
-            if (rolesParser.json.incompatibleRolesByRole.ContainsKey(role.Id))
+            if (member.Roles.Contains(role))
             {
-                foreach (ulong incompatibleRole in rolesParser.json.incompatibleRolesByRole[role.Id])
+                await member.RevokeRoleAsync(role);
+            }
+            else
+            {
+                await member.GrantRoleAsync(role);
+
+                if (rolesParser.json.incompatibleRolesByRole.ContainsKey(role.Id))
                 {
-                    try
+                    foreach (ulong incompatibleRole in rolesParser.json.incompatibleRolesByRole[role.Id])
                     {
-                        await member.RevokeRoleAsync(args.Guild.GetRole(incompatibleRole));
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex);
+                        try
+                        {
+                            await member.RevokeRoleAsync(args.Guild.GetRole(incompatibleRole));
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex);
+                        }
                     }
                 }
             }

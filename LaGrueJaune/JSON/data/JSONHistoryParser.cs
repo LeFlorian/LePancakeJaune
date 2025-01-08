@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace LaGrueJaune.config
@@ -53,6 +54,41 @@ namespace LaGrueJaune.config
 
             await WriteJSON();
         }
+
+        public async Task ClearAbsentUsers()
+        {
+            if (json == null)
+            {
+                await ReadJSON();
+            }
+
+            List<ulong> absentUsers = new List<ulong>();
+
+            Console.WriteLine(Program.Guild.Name);
+            IReadOnlyCollection<DiscordMember> members = await Program.Guild.GetAllMembersAsync();
+
+            foreach (var user in json.historyClone)
+            {
+                DiscordMember findedMember = members.FirstOrDefault(ctx => ctx.Id == user.Key);
+
+                if (findedMember == default)
+                {
+                    absentUsers.Add(user.Key);
+                }
+            }
+
+            string messageLog = $"{absentUsers.Count} users cleaned:\n";
+            foreach (var user in absentUsers)
+            {
+                messageLog += $"{user} : {json.History[user].author}\n";
+                json.History.Remove(user);
+            }
+
+            Console.WriteLine(messageLog);
+
+            await WriteJSON();
+        }
+
     }
 
     public class JSONHistory
@@ -60,7 +96,7 @@ namespace LaGrueJaune.config
         public class Description
         {
             public string author;
-            public DateTime publicationDate;
+            public DateTime publicationDate = default;
             public double numberOfDay;
             public Uri link;
             public bool isKickable = true;
@@ -70,11 +106,20 @@ namespace LaGrueJaune.config
             public class Prevent
             {
                 public int amount;
-                public DateTime last;
+                public DateTime last = default;
             }
         }
 
-
         public Dictionary<ulong, Description> History = new Dictionary<ulong, Description>();
+
+
+        public Dictionary<ulong, Description> historyClone
+        {
+            get
+            {
+                string json = JsonConvert.SerializeObject(History, Formatting.Indented);
+                return JsonConvert.DeserializeObject<Dictionary<ulong, JSONHistory.Description>>(json);
+            }
+        }
     }
 }
