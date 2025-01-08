@@ -63,8 +63,6 @@ namespace LaGrueJaune.config
             }
 
             List<ulong> absentUsers = new List<ulong>();
-
-            Console.WriteLine(Program.Guild.Name);
             IReadOnlyCollection<DiscordMember> members = await Program.Guild.GetAllMembersAsync();
 
             foreach (var user in json.historyClone)

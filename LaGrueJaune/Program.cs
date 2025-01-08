@@ -203,8 +203,8 @@ namespace LaGrueJaune
                     break;
 
                 case "next":
-
-                    dir = new DiscordInteractionResponseBuilder(await GetPurgeMessage(purgeListPageIndex +1, isPurgeMessage));
+                    DiscordMessageBuilder builder = await GetPurgeMessage(purgeListPageIndex + 1, isPurgeMessage);
+                    dir = new DiscordInteractionResponseBuilder(builder);
                     await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage, dir);
 
                     break;
@@ -344,13 +344,16 @@ namespace LaGrueJaune
             if (args.User.IsBot)
                 return;
 
-            await AddDescriptionInHistory(args.User.Id, args.User.Username, DateTime.Now);
+
+
+            await AddDescriptionInHistory(args.User.Id, args.User.Username , DateTime.Now);
 
             return;
         }
         #endregion
 
         #region Functions
+
         public static DiscordButtonComponent GetPreviousButton()
         {
             DiscordButtonComponent buttonPrevious = new DiscordButtonComponent(
@@ -415,7 +418,7 @@ namespace LaGrueJaune
                     if (desc.isKickable)
                         emojiKickable = ":red_square:";
 
-                    description += $"\n{emojiKickable} {i+1}:\t<@{userID}>\t{desc.link}\t{desc.numberOfDay} days";
+                    description += $"\n-# {emojiKickable} {i + 1} : <@{userID}> {desc.link} ({desc.author}) ~ {desc.numberOfDay} jours";
                 }
             }
             var embed = new DiscordEmbedBuilder()
@@ -438,7 +441,7 @@ namespace LaGrueJaune
                 buttonNext.Disable();
             }
 
-            var buttonID = GetIDButton((json.History.Count/numberOfUserPerPages)+1);
+            var buttonID = GetIDButton((json.History.Count / numberOfUserPerPages) + 1);
 
             var message = new DiscordMessageBuilder();
             message.AddEmbed(embed);

@@ -58,6 +58,7 @@ namespace LaGrueJaune.commands
 
             await Program.CleanHistory();
 
+
             Program.isPurgeMessage = true;
             DiscordMessageBuilder msg = await Program.GetPurgeMessage(Program.purgeListPageIndex);
 
@@ -176,6 +177,7 @@ namespace LaGrueJaune.commands
                     link = message.JumpLink,
                     publicationDate = message.CreationTimestamp.DateTime
                 };
+
 
                 await Program.historyParser.AddHistory(message.Author.Id, desc);
 
