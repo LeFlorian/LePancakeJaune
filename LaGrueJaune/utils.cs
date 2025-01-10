@@ -170,10 +170,10 @@ namespace LaGrueJaune
             int i = newsIndex;
             string titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/header/h3/a").InnerText.Trim();
             string beginDate = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/p").InnerText.Trim();
-            NewsFeedTmp.Add(titre + " - " + beginDate);
+            NewsFeedTmp.Add(titre);
 
             // On vérifie si l'évènement a déjà été traité ou non avec la même date de début
-            if (Program.newsFeedParser.json.NewsFeed.Contains(titre + " - " + beginDate)){   
+            if (Program.newsFeedParser.json.NewsFeed.Contains(titre)){   
                 return null;
             }
 
@@ -229,7 +229,7 @@ namespace LaGrueJaune
             //.WithFooter("https://www.bigcitylife.fr/agenda/")
             ;
 
-            Program.newsFeedParser.AddNews(titre, beginDate);
+            Program.newsFeedParser.AddNews(titre);
             
             return embedBuilder;
         }

@@ -47,17 +47,17 @@ namespace LaGrueJaune.config
             }
         } 
 
-        public async Task AddNews(string titre, string debut)
+        public async Task AddNews(string titre)
         {
             if (json == null)
             {
                 await ReadJSON();
             }
 
-            // On ne traite pas l'évènement s'il est déjà listé avec la même date de début
-            if (!json.NewsFeed.Contains(titre + " - " + debut))
+            // On ne traite pas l'évènement s'il est déjà listé
+            if (!json.NewsFeed.Contains(titre))
             {
-                json.NewsFeed.Add(titre + " - " + debut);
+                json.NewsFeed.Add(titre);
             }
 
             await WriteJSON();

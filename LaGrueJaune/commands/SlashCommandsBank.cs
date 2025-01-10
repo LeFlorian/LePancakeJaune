@@ -1229,52 +1229,9 @@ namespace LaGrueJaune.commands
         public async Task newsFeed(InteractionContext ctx)
         {
             await ctx.Interaction.DeferAsync(ephemeral: true);
-
-            // Liste temporaire des évènements pour remettre à jour la liste stockée
-            List<string> NewsFeedTmp = new List<string>();
-
-            // Traitement de la première page (évènements en cours et proches)
-            string bclUrl = "https://www.bigcitylife.fr/agenda/";
-            HtmlWeb web = new HtmlAgilityPack.HtmlWeb();
-            HtmlDocument doc = web.Load(bclUrl);
-            int i = 1;
-            var titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/header/h3/a");
-            while (titre != null && !"".Equals(titre))
-            {
-                DiscordEmbedBuilder embedBuilder = NewsBuilder(bclUrl, web, doc, i, NewsFeedTmp);
-                if (embedBuilder != null)
-                {
-                    DiscordMessageBuilder builder = new DiscordMessageBuilder().AddEmbed(embedBuilder);
-                    await ctx.Channel.SendMessageAsync(builder);
-                }
-
-                i += 1;
-                titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/header/h3/a");
-            }
-
-            // Traitement de la deuxième page (évènements à venir)
-            bclUrl = "https://www.bigcitylife.fr/agenda/liste/page/2/?hide_subsequent_recurrences=1";
-            doc = web.Load(bclUrl);
-            int j = 1;
-            titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{j}]/div/article/div/header/h3/a");
-            while (titre != null && !"".Equals(titre))
-            {
-                DiscordEmbedBuilder embedBuilder = NewsBuilder(bclUrl, web, doc, j, NewsFeedTmp);
-                if (embedBuilder != null)
-                {
-                    DiscordMessageBuilder builder = new DiscordMessageBuilder().AddEmbed(embedBuilder);
-                    await ctx.Channel.SendMessageAsync(builder);
-                }
-
-                j += 1;
-                titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{j}]/div/article/div/header/h3/a");
-            }
-
-            Program.newsFeedParser.json.NewsFeed = NewsFeedTmp;
-            Program.newsFeedParser.WriteJSON();
-
-            DiscordFollowupMessageBuilder response = new DiscordFollowupMessageBuilder().WithContent("OK");
-            await ctx.Interaction.CreateFollowupMessageAsync(response);
+            await Program.updateNewsFeed();
+            DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent("OK");
+            await ctx.Interaction.CreateFollowupMessageAsync(builder);
         }
         #endregion
 
