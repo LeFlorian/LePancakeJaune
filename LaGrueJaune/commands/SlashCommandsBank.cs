@@ -2,10 +2,8 @@ using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.SlashCommands.Attributes;
-using HtmlAgilityPack;
 using LaGrueJaune.config;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -296,6 +294,8 @@ namespace LaGrueJaune.commands
 
             if (currentEditingMessage != null)
             {
+                await SelectMessage(ctx, currentEditingMessage.JumpLink.OriginalString, true);
+
                 if (currentEditingMessage.Embeds.Count > 0)
                 {
                     DiscordEmbedBuilder newEmbed = new DiscordEmbedBuilder(currentEditingMessage.Embeds[0]);
@@ -369,8 +369,8 @@ namespace LaGrueJaune.commands
                     if (Program.IsValidUri(titleUrl))
                         newEmbed.WithUrl(titleUrl);
 
-                    DiscordMessageBuilder message = new DiscordMessageBuilder();
-                    message.AddEmbed(newEmbed);
+                    DiscordMessageBuilder message = new DiscordMessageBuilder(currentEditingMessage);
+                    message.Embed = newEmbed;
 
                     try
                     {
@@ -396,7 +396,7 @@ namespace LaGrueJaune.commands
             [Option("Force","Do not use")] bool forceResponse = false)
         {
             if (!forceResponse)
-                await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+                await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true});
 
             DiscordMessage message = await Program.GetMessageFromURI(messageUrl);
             Console.WriteLine(message);
@@ -416,13 +416,15 @@ namespace LaGrueJaune.commands
 
 
             await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("Message sélectionné."));
-            await Task.Delay(5000);
-            await ctx.DeleteResponseAsync();
         }
 
         #endregion
 
+
+
+
         #region Buttons
+
         [SlashCommand("ButtonAdd", "Add a button to a selected message")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
         public async Task ButtonAdd(InteractionContext ctx,
@@ -430,7 +432,8 @@ namespace LaGrueJaune.commands
             [Option("Label", "Button text")] string label = "",
             [Option("Status", "Is the button is active or not")] bool active = true,
             [Option("LinkedFunction", "Function of the button when pressed")] ButtonFunction function = ButtonFunction.Null,
-            [Option("Role", "Role to assign when pressed the button")] DiscordRole role = default)
+            [Option("Role", "Role to assign when pressed the button")] DiscordRole role = default,
+            [Option("Emoji","Emoji on the button")] DiscordEmoji emoji = default)
         {
             if (currentEditingMessage == null)
             {
@@ -461,12 +464,15 @@ namespace LaGrueJaune.commands
                 }
             }
 
+            DiscordComponentEmoji dce = new DiscordComponentEmoji(emoji);
+
             // Création du bouton
             var newButton = new DiscordButtonComponent(
                 bs,
                 $"{Guid.NewGuid()}:{function}:{roleID}", // ID du bouton
                 label,
-                !active // Disabled ou non
+                !active,
+                dce
             );
 
             buttons.Add(newButton);
@@ -525,6 +531,150 @@ namespace LaGrueJaune.commands
             }*/
             #endregion
             Console.WriteLine("End : "+message.Components.Count);
+
+            try
+            {
+                // Modification du message
+                currentEditingMessage = await currentEditingMessage.ModifyAsync(message);
+
+                await ctx.DeleteResponseAsync(); // Supprime la réponse d'attente
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Erreur lors de la modification du message : {e}");
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder()
+                    .WithContent("Une erreur est survenue lors de la modification du message."));
+                await Task.Delay(5000);
+                await ctx.DeleteResponseAsync();
+            }
+        }
+
+        [SlashCommand("DropdownAdd", "Add a dropdown to a selected message")]
+        [SlashRequireUserPermissions(Permissions.Administrator)]
+        public async Task DropdownAdd(InteractionContext ctx,
+            [Option("DropdownLabel", "Dropdown text")] string placeHolder = null,
+            [Option("DropdownStatus", "Is the dropdown is active or not")] bool active = true,
+            [Option("FirstOptionLabel", "Label of the first option")] string firstOptionLabel = "",
+            [Option("FirstOptionDescription", "Description of the first option")] string firstOptionDescription = "",
+            [Option("FirstOptionEmoji", "Function of the first option when selected")] DiscordEmoji firstOptionEmoji = default,
+            [Option("FirstOptionLinkedFunction", "Function of the first option when selected")] ButtonFunction firstOptionFunction = ButtonFunction.Null,
+            [Option("FirstOptionRole", "Role to assign when selected the first option")] DiscordRole firstOptionRole = default)
+        {
+            if (currentEditingMessage == null)
+            {
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
+                    new DiscordInteractionResponseBuilder()
+                    {
+                        IsEphemeral = true,
+                        Content = "Pas de messages sélectionnés"
+                    });
+                return; // On quitte la fonction pour éviter une erreur
+            }
+
+            await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+
+            ulong roleID = 0;
+            if (firstOptionRole != default)
+                roleID = firstOptionRole.Id;
+
+            //Create the first option:
+            var options = new List<DiscordSelectComponentOption>()
+            {
+                new DiscordSelectComponentOption(
+                firstOptionLabel,
+                $"{Guid.NewGuid()}:{firstOptionFunction}:{roleID}",
+                firstOptionDescription,
+                false,
+                new DiscordComponentEmoji(firstOptionEmoji))
+            };
+
+            var dropdown = new DiscordSelectComponent($"{Guid.NewGuid()}:{ButtonFunction.AddOrRemoveRoleBySelectComp}", placeHolder, options);
+
+            var message = new DiscordMessageBuilder(currentEditingMessage);
+            message.AddComponents(dropdown);
+
+            try
+            {
+                // Modification du message
+                currentEditingMessage = await currentEditingMessage.ModifyAsync(message);
+
+                await ctx.DeleteResponseAsync(); // Supprime la réponse d'attente
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Erreur lors de la modification du message : {e}");
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder()
+                    .WithContent("Une erreur est survenue lors de la modification du message."));
+                await Task.Delay(5000);
+                await ctx.DeleteResponseAsync();
+            }
+        }
+        [SlashCommand("DropdownOptionAdd", "Add an option to a dropdown in a selected message")]
+        [SlashRequireUserPermissions(Permissions.Administrator)]
+        public async Task DropdownOptionAdd(InteractionContext ctx,
+            [Option("Label", "Label of the option")] string label = "",
+            [Option("Description", "Description of the option")] string description = "",
+            [Option("Emoji", "Function of the option when selected")] DiscordEmoji emoji = default,
+            [Option("LinkedFunction", "Function of the option when selected")] ButtonFunction function = ButtonFunction.Null,
+            [Option("Role", "Role to assign when selected the option")] DiscordRole role = default)
+        {
+            if (currentEditingMessage == null)
+            {
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
+                    new DiscordInteractionResponseBuilder()
+                    {
+                        IsEphemeral = true,
+                        Content = "Pas de messages sélectionnés"
+                    });
+                return; // On quitte la fonction pour éviter une erreur
+            }
+
+            await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+            var message = new DiscordMessageBuilder(currentEditingMessage);
+            DiscordSelectComponent currentSelect = null;
+
+            foreach (DiscordComponent dc in message.Components)
+            {
+                if (dc is DiscordActionRowComponent)
+                {
+                    var row = (DiscordActionRowComponent)dc;
+                    
+                    foreach (var dc2 in row.Components)
+                    {
+                        if (dc2 is DiscordSelectComponent)
+                        {
+                            currentSelect = (DiscordSelectComponent)dc2;
+                        }
+                    }
+                }
+            }
+
+            ulong roleID = 0;
+            if (role != default)
+                roleID = role.Id;
+
+            var options = new List<DiscordSelectComponentOption>();
+
+            foreach (var o in currentSelect.Options)
+            {
+                options.Add(o);
+            }
+
+
+            //Create the new option:
+            var newOption = new DiscordSelectComponentOption(
+                label,
+                $"{Guid.NewGuid()}:{function}:{roleID}",
+                description,
+                false,
+                new DiscordComponentEmoji(emoji));
+
+            options.Add(newOption);
+
+            var dropdown = new DiscordSelectComponent($"{Guid.NewGuid()}:{ButtonFunction.AddOrRemoveRoleBySelectComp}", currentSelect.Placeholder, options);
+
+            message.ClearComponents();
+            message.AddComponents(dropdown);
 
             try
             {

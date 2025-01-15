@@ -23,7 +23,15 @@ namespace LaGrueJaune.config
             using (StreamReader sr = new StreamReader("JSON/newsFeed.json"))
             {
                 string reader = await sr.ReadToEndAsync();
-                List<string> data = JsonConvert.DeserializeObject<List<string>>(reader);
+                List<string> data = new List<string>();
+                try
+                {
+                    data = JsonConvert.DeserializeObject<List<string>>(reader);
+                }
+                catch (Exception ex)
+                { 
+                    Console.WriteLine(ex.Message);
+                }
 
                 this.json = new JSONNewsFeed();
                 this.json.NewsFeed = data;

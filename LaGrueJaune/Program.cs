@@ -26,7 +26,9 @@ namespace LaGrueJaune
         [ChoiceName("Null")]
         Null,
         [ChoiceName("AddOrRemoveRole")]
-        AddOrRemoveRole
+        AddOrRemoveRole,
+        AddOrRemoveRoleBySelectComp
+
     }
 
     internal class Program
@@ -268,25 +270,60 @@ namespace LaGrueJaune
             #endregion
 
             #region Other Buttons
+            bool asAlreadyDeffered = false;
+
             string[] buttonInfo = args.Interaction.Data.CustomId.Split(':');
+            await MakeButtonFunc(buttonInfo);
 
-            if (buttonInfo.Length > 1)
+            async Task MakeButtonFunc(string[] infos)
             {
-                DiscordMessage linkedMessage = args.Message;
-                Enum.TryParse(buttonInfo[1], out ButtonFunction linkedFunction);
-                DiscordRole linkedRole = args.Guild.GetRole(ulong.Parse(buttonInfo[2]));
-
-                switch (linkedFunction)
+                if (infos.Length > 1)
                 {
-                    case ButtonFunction.AddOrRemoveRole:
+                    if (!asAlreadyDeffered)
+                    {
+                        asAlreadyDeffered = true;
+                        await args.Interaction.DeferAsync(true);
+                    }
 
-                        await AddOrRemoveRoleToSelfUser(sender, args, linkedRole);
+                    DiscordMessage linkedMessage = args.Message;
+                    Enum.TryParse(infos[1], out ButtonFunction linkedFunction);
 
-                        break;
+                    switch (linkedFunction)
+                    {
+                        case ButtonFunction.AddOrRemoveRole:
+
+                            DiscordRole linkedRole = args.Guild.GetRole(ulong.Parse(infos[2]));
+
+                            bool asAddedRole = await AddOrRemoveRoleToSelfUser(sender, args, linkedRole);
+
+                            var response = new DiscordWebhookBuilder();
+                            if (asAddedRole)
+                            {
+                                response.WithContent($"Le rôle {linkedRole.Mention} a été ajouté.");
+                            }
+                            else
+                            {
+                                response.WithContent($"Le rôle {linkedRole.Mention} a été retiré.");
+                            }
+
+                            await args.Interaction.EditOriginalResponseAsync(response);
+                            break;
+
+                        case ButtonFunction.AddOrRemoveRoleBySelectComp:
+
+                            var options = args.Values;
+                            foreach ( var option in options)
+                            {
+                                string[] optionInfo = option.Split(':');
+
+                                await MakeButtonFunc(optionInfo);
+                            }
+
+                            break;
+
+                    }
 
                 }
-
-                await args.Interaction.CreateFollowupMessageAsync(new DiscordFollowupMessageBuilder().WithContent($"Fonction: {linkedFunction}\nRole: {linkedRole}"));
             }
             #endregion
         }
@@ -846,13 +883,14 @@ namespace LaGrueJaune
         }
 
         #region Buttons functions
-        public static async Task AddOrRemoveRoleToSelfUser(DiscordClient sender, ComponentInteractionCreateEventArgs args, DiscordRole role)
+        public static async Task<bool> AddOrRemoveRoleToSelfUser(DiscordClient sender, ComponentInteractionCreateEventArgs args, DiscordRole role)
         {
             DiscordMember member = await args.Guild.GetMemberAsync(args.User.Id);
 
             if (member.Roles.Contains(role))
             {
                 await member.RevokeRoleAsync(role);
+                return false;
             }
             else
             {
@@ -872,6 +910,9 @@ namespace LaGrueJaune
                         }
                     }
                 }
+
+                return true;
+
             }
         }
 
