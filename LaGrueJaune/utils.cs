@@ -165,7 +165,7 @@ namespace LaGrueJaune
                 yield return chunk.ToArray();
         }
 
-    public static DiscordEmbedBuilder NewsBuilder(string bclUrl, HtmlWeb web, HtmlDocument doc, int newsIndex, List<string> NewsFeedTmp)
+        public static DiscordEmbedBuilder NewsBuilder(string bclUrl, HtmlWeb web, HtmlDocument doc, int newsIndex, List<string> NewsFeedTmp)
         {
             int i = newsIndex;
             string titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/header/h3/a").InnerText.Trim();
@@ -214,7 +214,22 @@ namespace LaGrueJaune
             {
                 desc = descTmp.InnerText.Trim();
             }
-            string evt = $"{System.Net.WebUtility.HtmlDecode(desc)}\n\n" +
+
+            string evtDesc =
+                $"{System.Net.WebUtility.HtmlDecode(desc)}";
+
+            if (evtDesc.Length > 150)
+            {
+                char[] specialChars = { '.', '?', '!' };
+                int index = evtDesc.IndexOfAny(specialChars);
+
+                if (index != -1)
+                {
+                    evtDesc = evtDesc.Substring(0, index+1);
+                }
+            }
+
+            string evtInfos =
                 $":cityscape: {types}\n" +
                 $":calendar: {beginDate}{endDate}\n" +
                 $":money_with_wings: {prix}\n" +
@@ -224,13 +239,15 @@ namespace LaGrueJaune
             .WithColor(DiscordColor.Blurple)
             .WithTitle(System.Net.WebUtility.HtmlDecode(titre))
             .WithUrl(url)
-            .WithDescription(evt)
+            .AddField("Description", evtDesc, true)
+            .AddField("Infos",evtInfos,true)
+            //.WithDescription(evt)
             .WithThumbnail(imgUrl)
             //.WithFooter("https://www.bigcitylife.fr/agenda/")
             ;
 
             Program.newsFeedParser.AddNews(titre);
-            
+
             return embedBuilder;
         }
     }
