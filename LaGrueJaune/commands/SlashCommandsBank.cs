@@ -267,7 +267,7 @@ namespace LaGrueJaune.commands
 
             await EmbedModify(ctx, title, description, hexColor, imageUrl, titleUrl, authorName, authorUrl, authorIconUrl, footerText, footerIconUrl, thumbmailUrl, true);
 
-            await SelectMessage(ctx,currentEditingMessage.JumpLink.OriginalString,true);
+            await SelectMessage(ctx, currentEditingMessage.JumpLink.OriginalString, true);
 
             await ctx.DeleteResponseAsync();
         }
@@ -393,10 +393,10 @@ namespace LaGrueJaune.commands
         [SlashRequireUserPermissions(Permissions.ModerateMembers)]
         public async Task SelectMessage(InteractionContext ctx,
             [Option("Message", "The url of the embed to modify")] string messageUrl,
-            [Option("Force","Do not use")] bool forceResponse = false)
+            [Option("Force", "Do not use")] bool forceResponse = false)
         {
             if (!forceResponse)
-                await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true});
+                await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true });
 
             DiscordMessage message = await Program.GetMessageFromURI(messageUrl);
             Console.WriteLine(message);
@@ -433,7 +433,8 @@ namespace LaGrueJaune.commands
             [Option("Status", "Is the button is active or not")] bool active = true,
             [Option("LinkedFunction", "Function of the button when pressed")] ButtonFunction function = ButtonFunction.Null,
             [Option("Role", "Role to assign when pressed the button")] DiscordRole role = default,
-            [Option("Emoji","Emoji on the button")] DiscordEmoji emoji = default)
+            [Option("Emoji", "Emoji on the button")] DiscordEmoji emoji = default,
+            [Option("IgnoredRole", "If the user has this role, it can't get the role by this button")] DiscordRole ignoredRole = default)
         {
             if (currentEditingMessage == null)
             {
@@ -449,10 +450,6 @@ namespace LaGrueJaune.commands
             await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
             DiscordMessageBuilder message = new DiscordMessageBuilder(currentEditingMessage);
 
-            ulong roleID;
-            if (role != default)
-                roleID = role.Id;
-            else roleID = 0;
 
             var buttons = new List<DiscordComponent>();
             foreach (DiscordComponent dc in currentEditingMessage.Components)
@@ -464,12 +461,17 @@ namespace LaGrueJaune.commands
                 }
             }
 
-            DiscordComponentEmoji dce = new DiscordComponentEmoji(emoji);
+            DiscordComponentEmoji dce = null;
+            if (emoji != null)
+                dce = new DiscordComponentEmoji(emoji);
+
+            ulong roleID = Program.GetRoleIDOrZero(role);
+            ulong ignoredRoleId = Program.GetRoleIDOrZero(ignoredRole);
 
             // Création du bouton
             var newButton = new DiscordButtonComponent(
                 bs,
-                $"{Guid.NewGuid()}:{function}:{roleID}", // ID du bouton
+                $"{Guid.NewGuid()}:{function}:{roleID}:{ignoredRoleId}", // ID du bouton
                 label,
                 !active,
                 dce
@@ -492,44 +494,6 @@ namespace LaGrueJaune.commands
                 message.AddComponents(actionRow.Components); // Ajoute chaque ligne complète
             }
 
-            #region tests
-            // Récupération et regroupement des composants existants
-            /*
-            var currentComponents = new List<DiscordComponent>();
-
-            foreach (var row in currentEditingMessage.Components)
-            {
-                if (row.Type == ComponentType.ActionRow)
-                {
-                    DiscordActionRowComponent ar = (DiscordActionRowComponent)row;
-
-                    currentComponents.AddRange(ar.Components);
-                }
-            }
-
-            Console.WriteLine(currentComponents.Count);
-            foreach (var comp in currentComponents)
-                Console.WriteLine(comp.ToString());*/
-
-            //currentComponents.Add(newButton);
-            //message.AddComponents(currentComponents);
-
-            /*
-            // Organisation des composants en lignes
-            var actionRows = new List<DiscordActionRowComponent>();
-            foreach (var chunk in Utils.Chunk(currentComponents, 5))
-            {
-                var actionRow = new DiscordActionRowComponent(chunk);
-                actionRows.Add(actionRow); // Ajoute chaque ligne complète à la liste
-            }
-
-            // Ajoute les lignes au message
-            message.ClearComponents(); // Nettoie les anciens composants
-            foreach (var actionRow in actionRows)
-            {
-                message.AddComponents(actionRow); // Ajoute chaque ligne complète
-            }*/
-            #endregion
             Console.WriteLine("End : "+message.Components.Count);
 
             try

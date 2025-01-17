@@ -293,19 +293,19 @@ namespace LaGrueJaune
                         case ButtonFunction.AddOrRemoveRole:
 
                             DiscordRole linkedRole = args.Guild.GetRole(ulong.Parse(infos[2]));
-
-                            bool asAddedRole = await AddOrRemoveRoleToSelfUser(sender, args, linkedRole);
-
-                            var response = new DiscordWebhookBuilder();
-                            if (asAddedRole)
+                            DiscordRole ignoredRole = default;
+                            if (infos.Length >= 4)
                             {
-                                response.WithContent($"Le rôle {linkedRole.Mention} a été ajouté.");
-                            }
-                            else
-                            {
-                                response.WithContent($"Le rôle {linkedRole.Mention} a été retiré.");
+                                ulong ignoredRoleId = ulong.Parse(infos[3]);
+                                if (ignoredRoleId != 0)
+                                {
+                                    ignoredRole = args.Guild.GetRole(ignoredRoleId);
+                                }
                             }
 
+                            string log = await AddOrRemoveRoleToSelfUser(sender, args, linkedRole, ignoredRole);
+
+                            var response = new DiscordWebhookBuilder().WithContent(log);
                             await args.Interaction.EditOriginalResponseAsync(response);
                             break;
 
@@ -882,15 +882,30 @@ namespace LaGrueJaune
             return Task.CompletedTask;
         }
 
+        public static ulong GetRoleIDOrZero(DiscordRole role)
+        {
+            ulong roleID;
+            if (role != default)
+                roleID = role.Id;
+            else roleID = 0;
+
+            return roleID;
+        }
+
         #region Buttons functions
-        public static async Task<bool> AddOrRemoveRoleToSelfUser(DiscordClient sender, ComponentInteractionCreateEventArgs args, DiscordRole role)
+        public static async Task<string> AddOrRemoveRoleToSelfUser(DiscordClient sender, ComponentInteractionCreateEventArgs args, DiscordRole role, DiscordRole ignoredRole = default)
         {
             DiscordMember member = await args.Guild.GetMemberAsync(args.User.Id);
+
+            if (member.Roles.Contains(ignoredRole) && ignoredRole != default)
+            {
+                return $"En raison de votre rôle {ignoredRole.Mention} vous ne pouvez pas vous assigner le rôle {role.Mention}.";
+            }
 
             if (member.Roles.Contains(role))
             {
                 await member.RevokeRoleAsync(role);
-                return false;
+                return $"Le rôle {role.Mention} a été retiré.";
             }
             else
             {
@@ -911,7 +926,7 @@ namespace LaGrueJaune
                     }
                 }
 
-                return true;
+                return $"Le rôle {role.Mention} a été ajouté.";
 
             }
         }
