@@ -225,7 +225,10 @@ namespace LaGrueJaune
 
                 if (index != -1)
                 {
-                    evtDesc = evtDesc.Substring(0, index+1);
+                    int index2 = evtDesc.IndexOfAny(specialChars,index+1);
+
+                    if (index2 != -1)
+                        evtDesc = evtDesc.Substring(0, index2+1);
                 }
             }
 
@@ -239,9 +242,9 @@ namespace LaGrueJaune
             .WithColor(DiscordColor.Blurple)
             .WithTitle(System.Net.WebUtility.HtmlDecode(titre))
             .WithUrl(url)
-            .AddField("Description", evtDesc, true)
-            .AddField("Infos",evtInfos,true)
-            //.WithDescription(evt)
+            //.AddField("Description", evtDesc, true)
+            //.AddField("Infos",evtInfos,true)
+            .WithDescription($"{evtInfos}\n\n{evtDesc}")
             .WithThumbnail(imgUrl)
             //.WithFooter("https://www.bigcitylife.fr/agenda/")
             ;
