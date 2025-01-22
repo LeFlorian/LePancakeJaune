@@ -216,8 +216,9 @@ namespace LaGrueJaune
             }
 
             string evtDesc =
-                $"{System.Net.WebUtility.HtmlDecode(desc)}";
+                $"-# {System.Net.WebUtility.HtmlDecode(desc)}";
 
+            /*
             if (evtDesc.Length > 150)
             {
                 char[] specialChars = { '.', '?', '!' };
@@ -230,7 +231,7 @@ namespace LaGrueJaune
                     if (index2 != -1)
                         evtDesc = evtDesc.Substring(0, index2+1);
                 }
-            }
+            }*/
 
             string evtInfos =
                 $":cityscape: {types}\n" +
