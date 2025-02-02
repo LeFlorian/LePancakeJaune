@@ -624,9 +624,15 @@ namespace LaGrueJaune
                     {
 
                         //Je lui envoie un message pour lui dire qu'il doit parler sur le serveur
-                        var dmChannel = await member.CreateDmChannelAsync();
-                        await dmChannel.SendMessageAsync(messageToSend);
+                        try
+                        {
+                            var dmChannel = await member.CreateDmChannelAsync();
+                            await dmChannel.SendMessageAsync(messageToSend);
+                        }
 
+                        catch (Exception e) {
+                            Console.WriteLine($"Exception levée lors de l'envoi d'un message privé de purge à {member.Username}: " + e);
+                        }
 
                         mostRecentMessage.Value.prevent.amount += 1;
                         mostRecentMessage.Value.prevent.last = DateTime.Now;
@@ -767,9 +773,16 @@ namespace LaGrueJaune
                             urls += $" {file.Url}";
                         }
 
-                        await member.SendMessageAsync(args.Message.Content + urls
-                            + $"\n-# Envoyé par <@{args.Message.Author.Id}>");
-                        await args.Message.CreateReactionAsync(DiscordEmoji.FromName(Client, ":white_check_mark:"));
+                        try
+                        {
+                            await member.SendMessageAsync(args.Message.Content + urls
+                                + $"\n-# Envoyé par <@{args.Message.Author.Id}>");
+                            await args.Message.CreateReactionAsync(DiscordEmoji.FromName(Client, ":white_check_mark:"));
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("Exception levée lors de l'envoi d'un message privé anonyme: " + e);
+                        }
                         return;
                     }
                 }

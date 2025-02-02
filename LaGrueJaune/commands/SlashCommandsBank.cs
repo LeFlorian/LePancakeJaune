@@ -5,6 +5,7 @@ using DSharpPlus.SlashCommands.Attributes;
 using LaGrueJaune.config;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -420,9 +421,6 @@ namespace LaGrueJaune.commands
 
         #endregion
 
-
-
-
         #region Buttons
 
         [SlashCommand("ButtonAdd", "Add a button to a selected message")]
@@ -706,6 +704,33 @@ namespace LaGrueJaune.commands
             await ctx.Channel.SendMessageAsync($"{stashedNickname} a été banni pour la raison suivante:\n{reason}");
 
             await ctx.DeleteResponseAsync();
+        }
+
+        [SlashCommand("Clear", "Supprime les n derniers messages du salon")]
+        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task Clear(InteractionContext ctx, [Option("Nombre", "Nombre de messages à supprimer")] long n = 0)
+        {
+
+            if (n > 50)
+            {
+                await ctx.Interaction.DeferAsync(ephemeral: true);
+                DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent($"Erreur: La limite du nombre de messages à supprimer est de 50.");
+                await ctx.Interaction.CreateFollowupMessageAsync(builder);
+            }
+
+            else
+            {
+                await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+
+                var messages = ctx.Channel.GetMessagesAsync((int)n + 1).Result;
+
+                foreach (var message in messages)
+                {
+                    await message.DeleteAsync();
+                }
+
+                await ctx.DeleteResponseAsync();
+            }
         }
 
         #endregion
