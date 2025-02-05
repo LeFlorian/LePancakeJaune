@@ -2,11 +2,17 @@
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
+using IronPython.Runtime.Operations;
 using LaGrueJaune.config;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Security.Policy;
 using System.Threading.Tasks;
+using static IronPython.Modules._ast;
 using static LaGrueJaune.Utils;
 
 namespace LaGrueJaune.commands
@@ -542,6 +548,113 @@ namespace LaGrueJaune.commands
             message.AddEmbed(newEmbed);
 
             await currentEditingMessage.ModifyAsync(message);
+        }
+
+        [Command]
+        [RequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task GetJson(CommandContext ctx)
+        {
+            var editingMessage = SlashCommandsBank.currentEditingMessage;
+
+            if (editingMessage == null)
+            {
+                var warningMSG = await ctx.Channel.SendMessageAsync($"Message non trouvé.");
+
+                await Task.Delay(5000);
+
+                warningMSG.DeleteAsync();
+            }
+            else
+            {
+                var DmChannel = await ctx.Member.CreateDmChannelAsync();
+
+                string filePath = "JSON/temp.json";
+
+                // Écrire dans le fichier
+                string[] fileLines = new string[1];
+                fileLines[0] = JsonConvert.SerializeObject(editingMessage, Formatting.Indented);
+
+                File.WriteAllLines(filePath, fileLines);
+
+                // Ouvrir le fichier pour Discord après sa fermeture
+                using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+                {
+                    var message = new DiscordMessageBuilder();
+                    message.AddFile(fs);
+                    message.WithContent($"{editingMessage.JumpLink}");
+                    await DmChannel.SendMessageAsync(message);
+                }
+
+                ctx.Message.DeleteAsync();
+            }
+        }
+
+        [Command]
+        [RequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task SendMsgJson(CommandContext ctx)
+        {
+            var url = ctx.Message.Attachments[0].Url;
+            using (HttpClient client = new HttpClient())
+            {
+                Console.WriteLine(url);
+                string json = await client.GetStringAsync(url);
+                Console.WriteLine(json);
+                var dm = JsonConvert.DeserializeObject<DiscordMessage>(json);
+
+                DiscordMessageBuilder builder = new DiscordMessageBuilder();
+                
+                if (!string.IsNullOrEmpty(dm.Content))
+                    builder.WithContent(dm.Content);
+
+                if (dm.Embeds != null)
+                {
+                    foreach (var embed in dm.Embeds)
+                    {
+                        builder.WithEmbed(embed);
+                    }
+                }
+
+                if (dm.Components != null && dm.Components.Count > 0)
+                    builder.AddComponents(dm.Components);
+                
+
+                await ctx.Channel.SendMessageAsync(builder);
+                ctx.Message.DeleteAsync();
+            }
+        }
+
+        [Command]
+        [RequireUserPermissions(Permissions.ModerateMembers)]
+        public async Task EditMsgJson(CommandContext ctx)
+        {
+            var url = ctx.Message.Attachments[0].Url;
+            using (HttpClient client = new HttpClient())
+            {
+                string json = await client.GetStringAsync(url);
+                var dm = JsonConvert.DeserializeObject<DiscordMessage>(json);
+
+                DiscordMessageBuilder builder = new DiscordMessageBuilder();
+
+                if (!string.IsNullOrEmpty(dm.Content))
+                    builder.WithContent(dm.Content);
+
+                if (dm.Embeds != null)
+                {
+                    foreach (var embed in dm.Embeds)
+                    {
+                        builder.WithEmbed(embed);
+                    }
+                }
+
+                if (dm.Components != null && dm.Components.Count > 0)
+                    builder.AddComponents(dm.Components);
+
+                var editingMessage = SlashCommandsBank.currentEditingMessage;
+
+                await editingMessage.ModifyAsync(builder);
+
+                ctx.Message.DeleteAsync();
+            }
         }
 
         #endregion
