@@ -30,6 +30,7 @@ namespace LaGrueJaune.config
             using (StreamWriter sw = new StreamWriter("JSON/history.json"))
             {
                 await sw.WriteLineAsync(JsonConvert.SerializeObject(json.History, Formatting.Indented));
+                sw.Close();
             }
         }
 
