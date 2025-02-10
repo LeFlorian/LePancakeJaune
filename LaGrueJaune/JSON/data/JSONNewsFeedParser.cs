@@ -11,6 +11,8 @@ using System.Security.Cryptography;
 using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
+using static LaGrueJaune.config.JSONNewsFeed;
+using static LaGrueJaune.config.JSONNotes;
 
 namespace LaGrueJaune.config
 {
@@ -23,10 +25,10 @@ namespace LaGrueJaune.config
             using (StreamReader sr = new StreamReader("JSON/newsFeed.json"))
             {
                 string reader = await sr.ReadToEndAsync();
-                List<string> data = new List<string>();
+                Dictionary<string, NewsInfo> data = new Dictionary<string, NewsInfo>();
                 try
                 {
-                    data = JsonConvert.DeserializeObject<List<string>>(reader);
+                    data = JsonConvert.DeserializeObject<Dictionary<string, NewsInfo>>(reader);
                 }
                 catch (Exception ex)
                 { 
@@ -34,7 +36,7 @@ namespace LaGrueJaune.config
                 }
 
                 this.json = new JSONNewsFeed();
-                this.json.NewsFeed = data;
+                this.json.News = data;
                 Console.WriteLine($"NewsFeed: {data.Count}");
             }
         }
@@ -43,7 +45,7 @@ namespace LaGrueJaune.config
         {
             using (StreamWriter sw = new StreamWriter("JSON/newsFeed.json"))
             {
-                await sw.WriteLineAsync(JsonConvert.SerializeObject(json.NewsFeed, Formatting.Indented));
+                await sw.WriteLineAsync(JsonConvert.SerializeObject(json.News, Formatting.Indented));
             }
         }
 
@@ -55,7 +57,7 @@ namespace LaGrueJaune.config
             }
         } 
 
-        public async Task AddNews(string titre)
+        public async Task AddNews(string titre, NewsInfo info)
         {
             if (json == null)
             {
@@ -63,9 +65,9 @@ namespace LaGrueJaune.config
             }
 
             // On ne traite pas l'évènement s'il est déjà listé
-            if (!json.NewsFeed.Contains(titre))
+            if (!json.News.ContainsKey(titre))
             {
-                json.NewsFeed.Add(titre);
+                json.News.Add(titre, info);
             }
 
             await WriteJSON();
@@ -74,7 +76,14 @@ namespace LaGrueJaune.config
 
     public class JSONNewsFeed
     {
+        public class NewsInfo
+        {
+            public string dateDebut;
+            public string dateFin;
+            public Boolean isNew;
+            public string message;
+        }
 
-        public List<string> NewsFeed = new List<string>();
+        public Dictionary<string, NewsInfo> News = new Dictionary<string, NewsInfo>();
     }
 }

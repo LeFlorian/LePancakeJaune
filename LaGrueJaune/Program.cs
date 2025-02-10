@@ -18,6 +18,10 @@ using System.Threading.Tasks;
 using static LaGrueJaune.config.JSONAnniversaires;
 using HtmlAgilityPack;
 using static LaGrueJaune.Utils;
+using System.Windows.Forms;
+using static LaGrueJaune.config.JSONNewsFeed;
+using static System.Net.Mime.MediaTypeNames;
+using static IronPython.Modules.PythonDateTime;
 
 namespace LaGrueJaune
 {
@@ -827,7 +831,7 @@ namespace LaGrueJaune
 
             WishBirthday();
 
-            updateNewsFeed();
+            updateNewsFeed(true);
 
             return Task.CompletedTask;
         }
@@ -847,51 +851,116 @@ namespace LaGrueJaune
             return Task.CompletedTask;
         }
 
-        public static Task updateNewsFeed()
+        public static Task updateNewsFeed(Boolean postNews)
         {
 
             // Liste temporaire des évènements pour remettre à jour la liste stockée
-            List<string> NewsFeedTmp = new List<string>();
+            Dictionary<string, NewsInfo> NewsFeedTmp = new Dictionary<string, NewsInfo>();
 
             // Traitement de la première page (évènements en cours et proches)
             string bclUrl = "https://www.bigcitylife.fr/agenda/";
             HtmlWeb web = new HtmlAgilityPack.HtmlWeb();
-            HtmlDocument doc = web.Load(bclUrl);
+            HtmlAgilityPack.HtmlDocument doc = web.Load(bclUrl);
             int i = 1;
-            var titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/header/h3/a");
-            while (titre != null && !"".Equals(titre))
+            var blocTitre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/header/h3/a");
+            
+            while (blocTitre != null)
             {
+                string titre = System.Net.WebUtility.HtmlDecode(blocTitre.InnerText.Trim());
                 DiscordEmbedBuilder embedBuilder = NewsBuilder(bclUrl, web, doc, i, NewsFeedTmp);
-                if (embedBuilder != null)
+                if (embedBuilder != null && postNews)
                 {
                     DiscordMessageBuilder builder = new DiscordMessageBuilder().AddEmbed(embedBuilder);
-                    Guild.GetChannel(config.ID_newsFeedChannel).SendMessageAsync(builder);
+                    DiscordMessage message = Guild.GetChannel(config.ID_newsFeedChannel).SendMessageAsync(builder).Result;
+                    NewsFeedTmp[titre].message = message.JumpLink.ToString();
                 }
 
                 i += 1;
-                titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/header/h3/a");
+                blocTitre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/header/h3/a");
             }
 
             // Traitement de la deuxième page (évènements à venir)
             bclUrl = "https://www.bigcitylife.fr/agenda/liste/page/2/?hide_subsequent_recurrences=1";
             doc = web.Load(bclUrl);
             int j = 1;
-            titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{j}]/div/article/div/header/h3/a");
-            while (titre != null && !"".Equals(titre))
+            blocTitre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{j}]/div/article/div/header/h3/a");
+            while (blocTitre != null && !"".Equals(blocTitre))
             {
+                string titre = System.Net.WebUtility.HtmlDecode(blocTitre.InnerText.Trim());
                 DiscordEmbedBuilder embedBuilder = NewsBuilder(bclUrl, web, doc, j, NewsFeedTmp);
-                if (embedBuilder != null)
+                if (embedBuilder != null && postNews)
                 {
                     DiscordMessageBuilder builder = new DiscordMessageBuilder().AddEmbed(embedBuilder);
-                    Guild.GetChannel(config.ID_newsFeedChannel).SendMessageAsync(builder);
+                    DiscordMessage message = Guild.GetChannel(config.ID_newsFeedChannel).SendMessageAsync(builder).Result;
+                    NewsFeedTmp[titre].message = message.JumpLink.ToString();
                 }
 
                 j += 1;
-                titre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{j}]/div/article/div/header/h3/a");
+                blocTitre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{j}]/div/article/div/header/h3/a");
             }
 
-            Program.newsFeedParser.json.NewsFeed = NewsFeedTmp;
+            DiscordEmbedBuilder embedBuilderToCome = new DiscordEmbedBuilder()
+                .WithColor(DiscordColor.Blurple)
+                .WithTitle("Calendrier des sorties");
+
+            // Ajout des évènements pour les 7 prochains jours, jour actuel inclus
+            string date = null;
+            // Ajout des évènements courte durée
+            int d = 0;
+            while (d < 7)
+            {
+                date = DateTime.Now.AddDays(d).ToString().Substring(0, 5);
+                List<string> fields = new List<string>();
+                string todayEvents = "";
+                
+                (fields, todayEvents) = setNewsDaySummary(fields, NewsFeedTmp, date, todayEvents, true);
+
+                if (fields.Count == 0 && "".Equals(todayEvents)) { todayEvents = "-# Aucun évènement pour le moment :frowning2:"; }
+                string label = "";
+                switch (d)
+                {
+                    case 0: label = "Aujourd'hui"; break;
+                    case 1: label = "Demain"; break;
+                    default: label = date; break;
+                }
+
+                foreach (string field in fields)
+                {
+                    embedBuilderToCome.AddField(label, field, true);
+                }
+                if (!"".Equals(todayEvents))
+                {
+                    embedBuilderToCome.AddField(label, todayEvents, true);
+                }
+                d += 1;
+            }
+
+            // Ajout des évènement longue durée
+            date = DateTime.Now.ToString().Substring(0, 5);
+            List<string> ongoingFields = new List<string>();
+            string ongoingEvents = "";
+            (ongoingFields, ongoingEvents) = setNewsDaySummary(ongoingFields, NewsFeedTmp, date, ongoingEvents, false);
+            string descTmp = "**En cours**\n";
+            foreach (string field in ongoingFields)
+            {
+                descTmp += field;
+            }
+            if (!"".Equals(ongoingEvents))
+            {
+                descTmp += ongoingEvents;
+            }
+            embedBuilderToCome.Description = descTmp;
+            DiscordMessageBuilder builderToCome = new DiscordMessageBuilder().AddEmbed(embedBuilderToCome);
+            DiscordMessage toComeMessageDelete = Guild.GetChannel(config.ID_newsFeedChannel).GetMessageAsync((ulong)long.Parse(Program.newsFeedParser.json.News["summaryBuilder"].message)).Result;
+            toComeMessageDelete.DeleteAsync();
+            DiscordMessage toComeMessage = Guild.GetChannel(config.ID_newsFeedChannel).SendMessageAsync(builderToCome).Result;
+            NewsInfo toComeInfo = new NewsInfo();
+            toComeInfo.message = toComeMessage.Id.ToString();
+            NewsFeedTmp.Add("summaryBuilder", toComeInfo);
+
+            Program.newsFeedParser.json.News = NewsFeedTmp;
             Program.newsFeedParser.WriteJSON();
+
             return Task.CompletedTask;
         }
 

@@ -1365,12 +1365,11 @@ namespace LaGrueJaune.commands
         #region newsfeed
         [SlashCommand("newsFeed", "Affiche le fil d'actu")]
         [SlashCommandPermissions(Permissions.ModerateMembers)]
-        public async Task newsFeed(InteractionContext ctx)
+        public async Task newsFeed(InteractionContext ctx, [Option("Poster", "Poster les nouveaux évènements")] Boolean postNews = true)
         {
             await ctx.Interaction.DeferAsync(ephemeral: true);
-            await Program.updateNewsFeed();
-            DiscordFollowupMessageBuilder builder = new DiscordFollowupMessageBuilder().WithContent("OK");
-            await ctx.Interaction.CreateFollowupMessageAsync(builder);
+            await Program.updateNewsFeed(postNews);
+            await ctx.DeleteResponseAsync();
         }
         #endregion
 
