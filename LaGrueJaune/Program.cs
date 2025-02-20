@@ -22,6 +22,7 @@ using System.Windows.Forms;
 using static LaGrueJaune.config.JSONNewsFeed;
 using static System.Net.Mime.MediaTypeNames;
 using static IronPython.Modules.PythonDateTime;
+using System.Reflection.Emit;
 
 namespace LaGrueJaune
 {
@@ -951,8 +952,11 @@ namespace LaGrueJaune
             }
             embedBuilderToCome.Description = descTmp;
             DiscordMessageBuilder builderToCome = new DiscordMessageBuilder().AddEmbed(embedBuilderToCome);
-            DiscordMessage toComeMessageDelete = Guild.GetChannel(config.ID_newsFeedChannel).GetMessageAsync((ulong)long.Parse(Program.newsFeedParser.json.News["summaryBuilder"].message)).Result;
-            toComeMessageDelete.DeleteAsync();
+            var toComeMessageDeleteTmp = Guild.GetChannel(config.ID_newsFeedChannel).GetMessageAsync((ulong)long.Parse(Program.newsFeedParser.json.News["summaryBuilder"].message));
+            if (toComeMessageDeleteTmp.IsCompleted) {
+                DiscordMessage toComeMessageDelete = toComeMessageDeleteTmp.Result;
+                toComeMessageDelete.DeleteAsync();
+            }
             DiscordMessage toComeMessage = Guild.GetChannel(config.ID_newsFeedChannel).SendMessageAsync(builderToCome).Result;
             NewsInfo toComeInfo = new NewsInfo();
             toComeInfo.message = toComeMessage.Id.ToString();
