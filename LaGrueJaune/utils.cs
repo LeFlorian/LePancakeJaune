@@ -214,9 +214,13 @@ namespace LaGrueJaune
 
             HtmlDocument descDoc = web.Load(url);
             HtmlNode descTmp = descDoc.DocumentNode.SelectSingleNode("//*[contains(@id, 'post')]//*[text()][1]");
-            string imgUrl = descDoc.DocumentNode.SelectSingleNode("//*[contains(@id, 'post')]//img").Attributes["src"].Value; ;
+            var imgUrlTmp = descDoc.DocumentNode.SelectSingleNode("//*[contains(@id, 'post')]//img");
             string desc = "Pas de description";
-
+            string imgUrl = "";
+            if (imgUrlTmp != null)
+            {
+                imgUrl = imgUrlTmp.Attributes["src"].Value;
+            }
             if (descTmp != null)
             {
                 desc = descTmp.InnerText.Trim();

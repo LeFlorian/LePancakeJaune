@@ -875,7 +875,6 @@ namespace LaGrueJaune
                     DiscordMessage message = Guild.GetChannel(config.ID_newsFeedChannel).SendMessageAsync(builder).Result;
                     NewsFeedTmp[titre].message = message.JumpLink.ToString();
                 }
-
                 i += 1;
                 blocTitre = doc.DocumentNode.SelectSingleNode($"//*[@id=\"page-0\"]/div/div/div/div/div/div[2]/div[{i}]/div/article/div/header/h3/a");
             }
