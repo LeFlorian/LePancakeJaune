@@ -3,10 +3,12 @@ using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.SlashCommands.Attributes;
 using LaGrueJaune.config;
+using Microsoft.Scripting.Hosting.Shell;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Linq;
+using System.Security.Policy;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using static LaGrueJaune.config.JSONAnniversaires;
@@ -687,16 +689,24 @@ namespace LaGrueJaune.commands
         }
 
         [SlashCommand("Ban", "Ban a user and send the reason in DM.")]
-        [SlashRequireUserPermissions(Permissions.Administrator)]
+        [SlashRequireUserPermissions(Permissions.ModerateMembers)]
         public async Task Ban(InteractionContext ctx, [Option("User", "User to ban.")] DiscordUser user, [Option("Reason", "The reason for the ban.")] string reason = "")
         {
-            await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+
+            await ctx.Interaction.DeferAsync(ephemeral: true);
 
             // Envoyer un message privé à l'utilisateur
             DiscordMember member = await Program.Guild.GetMemberAsync(user.Id);
 
-            var dmChannel = await member.CreateDmChannelAsync();
-            await dmChannel.SendMessageAsync($"Tu a été banni de la grue jaune pour la raison suivante:\n {reason}");
+            try
+            {
+                var dmChannel = await member.CreateDmChannelAsync();
+                await dmChannel.SendMessageAsync($"Tu a été banni de la grue jaune pour la raison suivante:\n {reason}");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Exception levée lors de l'envoi d'un message de ban: " + e);
+            }
 
             string stashedNickname = member.DisplayName;
 

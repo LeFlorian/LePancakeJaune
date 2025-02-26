@@ -956,6 +956,7 @@ namespace LaGrueJaune
                 DiscordMessage toComeMessageDelete = toComeMessageDeleteTmp.Result;
                 toComeMessageDelete.DeleteAsync();
             }
+
             DiscordMessage toComeMessage = Guild.GetChannel(config.ID_newsFeedChannel).SendMessageAsync(builderToCome).Result;
             NewsInfo toComeInfo = new NewsInfo();
             toComeInfo.message = toComeMessage.Id.ToString();
