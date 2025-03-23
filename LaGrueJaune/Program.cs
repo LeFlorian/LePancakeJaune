@@ -852,7 +852,7 @@ namespace LaGrueJaune
             return Task.CompletedTask;
         }
 
-        public static Task updateNewsFeed(Boolean postNews)
+        public static async Task updateNewsFeed(Boolean postNews)
         {
 
             // Liste temporaire des évènements pour remettre à jour la liste stockée
@@ -951,21 +951,28 @@ namespace LaGrueJaune
             }
             embedBuilderToCome.Description = descTmp;
             DiscordMessageBuilder builderToCome = new DiscordMessageBuilder().AddEmbed(embedBuilderToCome);
+
+            // On limite le temps d'exécution de la tâche si elle n'arrive pas à trouver le message
+            int timeout = 10000;
             var toComeMessageDeleteTmp = Guild.GetChannel(config.ID_newsFeedChannel).GetMessageAsync((ulong)long.Parse(Program.newsFeedParser.json.News["summaryBuilder"].message));
-            if (toComeMessageDeleteTmp.IsCompleted) {
-                DiscordMessage toComeMessageDelete = toComeMessageDeleteTmp.Result;
-                toComeMessageDelete.DeleteAsync();
+            DiscordMessage toComeMessageDelete = null;
+            if (await Task.WhenAny(toComeMessageDeleteTmp, Task.Delay(timeout)) == toComeMessageDeleteTmp && !toComeMessageDeleteTmp.IsFaulted)
+            {
+                toComeMessageDelete = toComeMessageDeleteTmp.Result;
+            }
+            if (toComeMessageDelete != null)
+            {
+                await toComeMessageDelete.DeleteAsync();
             }
 
-            DiscordMessage toComeMessage = Guild.GetChannel(config.ID_newsFeedChannel).SendMessageAsync(builderToCome).Result;
+            DiscordMessage toComeMessage = await Guild.GetChannel(config.ID_newsFeedChannel).SendMessageAsync(builderToCome);
             NewsInfo toComeInfo = new NewsInfo();
             toComeInfo.message = toComeMessage.Id.ToString();
             NewsFeedTmp.Add("summaryBuilder", toComeInfo);
 
             Program.newsFeedParser.json.News = NewsFeedTmp;
-            Program.newsFeedParser.WriteJSON();
+            await Program.newsFeedParser.WriteJSON();
 
-            return Task.CompletedTask;
         }
 
         public static ulong GetRoleIDOrZero(DiscordRole role)
