@@ -868,6 +868,7 @@ namespace LaGrueJaune
             while (blocTitre != null)
             {
                 string titre = System.Net.WebUtility.HtmlDecode(blocTitre.InnerText.Trim());
+                Console.WriteLine(titre);
                 DiscordEmbedBuilder embedBuilder = NewsBuilder(bclUrl, web, doc, i, NewsFeedTmp);
                 if (embedBuilder != null && postNews)
                 {

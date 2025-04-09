@@ -177,15 +177,17 @@ namespace LaGrueJaune
             {
                 endDate = " - " + endDateTmp.InnerText.Trim();
             }
-
             NewsInfo info = new NewsInfo();
             info.dateDebut = beginDate;
             info.dateFin = endDate;
             info.isNew = true;
-            NewsFeedTmp.Add(titre, info);
-
+            if (!NewsFeedTmp.ContainsKey(titre)) // Vérification en cas de doublon sur le site
+            {
+                NewsFeedTmp.Add(titre, info);
+            }
             // On vérifie si l'évènement a déjà été traité ou non
             if (Program.newsFeedParser.json.News.ContainsKey(titre)){
+
                 NewsFeedTmp[titre].isNew = false;
                 NewsFeedTmp[titre].message = Program.newsFeedParser.json.News[titre].message;
                 return null;
@@ -217,6 +219,7 @@ namespace LaGrueJaune
             var imgUrlTmp = descDoc.DocumentNode.SelectSingleNode("//*[contains(@id, 'post')]//img");
             string desc = "Pas de description";
             string imgUrl = "";
+
             if (imgUrlTmp != null)
             {
                 imgUrl = imgUrlTmp.Attributes["src"].Value;
