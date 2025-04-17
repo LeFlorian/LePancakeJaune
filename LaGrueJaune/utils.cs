@@ -215,7 +215,7 @@ namespace LaGrueJaune
             else { prix = "Tarif non renseigné"; }
 
             HtmlDocument descDoc = web.Load(url);
-            HtmlNode descTmp = descDoc.DocumentNode.SelectSingleNode("//*[contains(@id, 'post')]//*[text()][1]");
+            HtmlNode descTmp = descDoc.DocumentNode.SelectSingleNode("//*[contains(@id, 'post')]//*[contains(@class, 'description')]");
             var imgUrlTmp = descDoc.DocumentNode.SelectSingleNode("//*[contains(@id, 'post')]//img");
             string desc = "Pas de description";
             string imgUrl = "";
