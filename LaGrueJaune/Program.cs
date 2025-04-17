@@ -23,6 +23,7 @@ using static LaGrueJaune.config.JSONNewsFeed;
 using static System.Net.Mime.MediaTypeNames;
 using static IronPython.Modules.PythonDateTime;
 using System.Reflection.Emit;
+using Microsoft.Scripting.Hosting.Shell;
 
 namespace LaGrueJaune
 {
@@ -901,7 +902,7 @@ namespace LaGrueJaune
 
             DiscordEmbedBuilder embedBuilderToCome = new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Blurple)
-                .WithTitle("Calendrier des sorties");
+                .WithTitle("Évenements à venir");
 
             // Ajout des évènements pour les 7 prochains jours, jour actuel inclus
             string date = null;
@@ -934,13 +935,18 @@ namespace LaGrueJaune
                 }
                 d += 1;
             }
+            DiscordMessageBuilder builderToCome = new DiscordMessageBuilder().AddEmbed(embedBuilderToCome);
 
             // Ajout des évènement longue durée
+            DiscordEmbedBuilder embedBuilderCurrent = new DiscordEmbedBuilder()
+                .WithColor(DiscordColor.Blurple)
+                .WithTitle("Évenements en cours");
+
             date = DateTime.Now.ToString().Substring(0, 5);
             List<string> ongoingFields = new List<string>();
             string ongoingEvents = "";
             (ongoingFields, ongoingEvents) = setNewsDaySummary(ongoingFields, NewsFeedTmp, date, ongoingEvents, false);
-            string descTmp = "**En cours**\n";
+            string descTmp = "";
             foreach (string field in ongoingFields)
             {
                 descTmp += field;
@@ -949,13 +955,15 @@ namespace LaGrueJaune
             {
                 descTmp += ongoingEvents;
             }
-            embedBuilderToCome.Description = descTmp;
-            DiscordMessageBuilder builderToCome = new DiscordMessageBuilder().AddEmbed(embedBuilderToCome);
+            embedBuilderCurrent.Description = descTmp;
 
-            // On limite le temps d'exécution de la tâche si elle n'arrive pas à trouver le message
+            DiscordMessageBuilder builderCurrent = new DiscordMessageBuilder().AddEmbed(embedBuilderCurrent);
+
+            // On limite le temps d'exécution de la tâche si elle n'arrive pas à trouver le message à supprimer
             int timeout = 10000;
-            var toComeMessageDeleteTmp = Guild.GetChannel(config.ID_newsFeedChannel).GetMessageAsync((ulong)long.Parse(Program.newsFeedParser.json.News["summaryBuilder"].message));
+            var toComeMessageDeleteTmp = Guild.GetChannel(config.ID_newsFeedChannel).GetMessageAsync((ulong)long.Parse(Program.newsFeedParser.json.News["toComeInfo"].message));
             DiscordMessage toComeMessageDelete = null;
+
             if (await Task.WhenAny(toComeMessageDeleteTmp, Task.Delay(timeout)) == toComeMessageDeleteTmp && !toComeMessageDeleteTmp.IsFaulted)
             {
                 toComeMessageDelete = toComeMessageDeleteTmp.Result;
@@ -965,10 +973,27 @@ namespace LaGrueJaune
                 await toComeMessageDelete.DeleteAsync();
             }
 
-            DiscordMessage toComeMessage = await Guild.GetChannel(config.ID_newsFeedChannel).SendMessageAsync(builderToCome);
+            var currentMessageDeleteTmp = Guild.GetChannel(config.ID_newsFeedChannel).GetMessageAsync((ulong)long.Parse(Program.newsFeedParser.json.News["currentInfo"].message));
+            DiscordMessage currentMessageDelete = null;
+            if (await Task.WhenAny(currentMessageDeleteTmp, Task.Delay(timeout)) == currentMessageDeleteTmp && !currentMessageDeleteTmp.IsFaulted)
+            {
+                currentMessageDelete = currentMessageDeleteTmp.Result;
+            }
+            if (currentMessageDelete != null)
+            {
+                await currentMessageDelete.DeleteAsync();
+            }
+
+            DiscordMessage messageCurrent = await Guild.GetChannel(config.ID_newsFeedChannel).SendMessageAsync(builderCurrent);
+            DiscordMessage messageToCome = await Guild.GetChannel(config.ID_newsFeedChannel).SendMessageAsync(builderToCome);
+  
+            NewsInfo currentInfo = new NewsInfo();
+            currentInfo.message = messageCurrent.Id.ToString();
+            NewsFeedTmp.Add("currentInfo", currentInfo);
+
             NewsInfo toComeInfo = new NewsInfo();
-            toComeInfo.message = toComeMessage.Id.ToString();
-            NewsFeedTmp.Add("summaryBuilder", toComeInfo);
+            toComeInfo.message = messageToCome.Id.ToString();
+            NewsFeedTmp.Add("toComeInfo", toComeInfo);
 
             Program.newsFeedParser.json.News = NewsFeedTmp;
             await Program.newsFeedParser.WriteJSON();
