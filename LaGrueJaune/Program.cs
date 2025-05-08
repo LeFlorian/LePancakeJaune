@@ -5,25 +5,21 @@ using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
+using HtmlAgilityPack;
 using LaGrueJaune.commands;
 using LaGrueJaune.config;
 using Quartz;
 using Quartz.Impl;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using static LaGrueJaune.config.JSONAnniversaires;
-using HtmlAgilityPack;
-using static LaGrueJaune.Utils;
-using System.Windows.Forms;
 using static LaGrueJaune.config.JSONNewsFeed;
-using static System.Net.Mime.MediaTypeNames;
-using static IronPython.Modules.PythonDateTime;
-using System.Reflection.Emit;
-using Microsoft.Scripting.Hosting.Shell;
+using static LaGrueJaune.Utils;
 
 namespace LaGrueJaune
 {
@@ -387,12 +383,44 @@ namespace LaGrueJaune
             if (args.User.IsBot)
                 return;
 
-
-
             await AddDescriptionInHistory(args.User.Id, args.User.Username , DateTime.Now);
+
+            //Creating channel custom
+            var before = args.Before?.Channel;
+            var after = args.After?.Channel;
+
+            // Si l'utilisateur vient de rejoindre un salon
+            if (after != null)
+            {
+                if (after.Id == config.ID_CustomVoiceChannel)
+                {
+                    var member = await args.Guild.GetMemberAsync(args.User.Id);
+                    var newChan = await args.Guild.CreateVoiceChannelAsync($"Vocal de {member.Nickname}", after.Parent);
+
+                    // Donner les permissions au créateur
+                    await newChan.AddOverwriteAsync(member, allow : Permissions.ManageChannels);
+
+                    customVoiceChannelsID.Add(newChan.Id);
+                    await newChan.PlaceMemberAsync(await args.Guild.GetMemberAsync(args.User.Id));
+                }
+            }
+
+            // Si l'utilisateur quitte un salon
+            if (before != null)
+            {
+                if (IsCustomVoiceChannel(before.Id))
+                {
+                    if (before.Users.Count <= 0) // <=1 car il reste l'user qui quitte
+                    {
+                        customVoiceChannelsID.Remove(before.Id);
+                        await before.DeleteAsync();
+                    }
+                }
+            }
 
             return;
         }
+        
         #endregion
 
         #region Functions
@@ -1008,6 +1036,13 @@ namespace LaGrueJaune
             else roleID = 0;
 
             return roleID;
+        }
+
+        static List<ulong> customVoiceChannelsID = new List<ulong>();
+
+        public static bool IsCustomVoiceChannel(ulong voiceChannelID)
+        {
+            return customVoiceChannelsID.Contains(voiceChannelID);
         }
 
         #region Buttons functions

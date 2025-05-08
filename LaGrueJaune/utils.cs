@@ -1,23 +1,18 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
+using HtmlAgilityPack;
+using Quartz;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Quartz;
 using System.Threading.Tasks;
-using LaGrueJaune.config;
 using static LaGrueJaune.config.JSONAnniversaires;
-using HtmlAgilityPack;
-using System.Runtime.CompilerServices;
-using IronPython.Compiler.Ast;
-using System.Diagnostics.Eventing.Reader;
 using static LaGrueJaune.config.JSONNewsFeed;
 
 namespace LaGrueJaune
 {
     public static class Utils
     {
-
         public static DiscordEmbedBuilder BuildEmbedNotes(ulong memberId, string avatarUrl, string note, int page, int nbTotal)
         {
             DiscordEmbedBuilder builder = new DiscordEmbedBuilder()
@@ -31,7 +26,6 @@ namespace LaGrueJaune
                 //.WithFooter("La Grue Jaune", Program.Guild.IconUrl)
                 ;
             return builder;
-
         }
 
         public static Action<DiscordMessageBuilder> buildActionNotes(ulong memberId, string avatarUrl, String note, int page)
