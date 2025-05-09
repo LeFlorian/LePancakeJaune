@@ -25,15 +25,6 @@ namespace LaGrueJaune.config
                 Console.WriteLine($"History: {data.Count}");
 
             }
-
-            /*
-            foreach (var test in json.History.Values)
-            {
-                test.customVocalConfig = new JSONHistory.Description.CustomVocalConfig();
-            }
-
-            await WriteJSON();
-            Console.WriteLine("Cleared");*/
         }
 
         public async Task WriteJSON()

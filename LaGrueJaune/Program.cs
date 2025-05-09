@@ -422,9 +422,8 @@ namespace LaGrueJaune
                         after.Parent, 
                         config.bitrate, 
                         config.user_limit, 
-                        null, 
-                        config.videoQualityMode,
-                        after.Parent.Children.Count-1
+                        null,
+                        config.videoQualityMode
                         );
 
 
