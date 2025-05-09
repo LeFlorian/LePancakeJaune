@@ -1,4 +1,5 @@
-﻿using DSharpPlus.Entities;
+﻿using DSharpPlus;
+using DSharpPlus.Entities;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -22,7 +23,17 @@ namespace LaGrueJaune.config
                 this.json = new JSONHistory();
                 this.json.History = data;
                 Console.WriteLine($"History: {data.Count}");
+
             }
+
+            /*
+            foreach (var test in json.History.Values)
+            {
+                test.customVocalConfig = new JSONHistory.Description.CustomVocalConfig();
+            }
+
+            await WriteJSON();
+            Console.WriteLine("Cleared");*/
         }
 
         public async Task WriteJSON()
@@ -54,6 +65,22 @@ namespace LaGrueJaune.config
             }
 
             await WriteJSON();
+        }
+
+        public async Task AddVocalConfig(ulong authorID, JSONHistory.Description.CustomVocalConfig config)
+        {
+            if (json == null)
+            {
+                await ReadJSON();
+            }
+
+            if (json.History.ContainsKey(authorID))
+            {
+                json.History[authorID].customVocalConfig = config;
+
+                await WriteJSON();
+            }
+
         }
 
         public async Task ClearAbsentUsers()
@@ -106,6 +133,17 @@ namespace LaGrueJaune.config
             {
                 public int amount;
                 public DateTime last = default;
+            }
+
+            public CustomVocalConfig customVocalConfig = new CustomVocalConfig();
+            public class CustomVocalConfig
+            {
+                
+                public string name = "";
+                public int bitrate = 0;
+                public int user_limit = 0;
+                public VideoQualityMode videoQualityMode = 0;
+                
             }
         }
 

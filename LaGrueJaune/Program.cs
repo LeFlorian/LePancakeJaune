@@ -10,6 +10,7 @@ using LaGrueJaune.commands;
 using LaGrueJaune.config;
 using Quartz;
 using Quartz.Impl;
+using Quartz.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -383,40 +384,101 @@ namespace LaGrueJaune
             if (args.User.IsBot)
                 return;
 
-            await AddDescriptionInHistory(args.User.Id, args.User.Username , DateTime.Now);
-
             //Creating channel custom
             var before = args.Before?.Channel;
             var after = args.After?.Channel;
+            var member = await args.Guild.GetMemberAsync(args.User.Id);
 
+            
             // Si l'utilisateur vient de rejoindre un salon
             if (after != null)
             {
                 if (after.Id == config.ID_CustomVoiceChannel)
                 {
-                    var member = await args.Guild.GetMemberAsync(args.User.Id);
-                    var newChan = await args.Guild.CreateVoiceChannelAsync($"Vocal de {member.Nickname}", after.Parent);
+                    string userName = member.Nickname;
+                    if (member.Nickname.IsNullOrWhiteSpace())
+                        userName = member.Username;
+
+                    //Setup config
+                    var config = historyParser.json.historyClone[args.User.Id].customVocalConfig;
+
+                    if (config.name.IsNullOrWhiteSpace())
+                    {
+                        config.name = $"Vocal de {userName}";
+                    }
+
+                    if (config.bitrate == 0)
+                    {
+                        config.bitrate = 64000;
+                    }
+
+                    if (config.videoQualityMode == 0)
+                    {
+                        config.videoQualityMode = VideoQualityMode.Auto;
+                    }
+
+                    var newChan = await args.Guild.CreateVoiceChannelAsync(
+                        config.name, 
+                        after.Parent, 
+                        config.bitrate, 
+                        config.user_limit, 
+                        null, 
+                        config.videoQualityMode,
+                        after.Parent.Children.Count-1
+                        );
+
 
                     // Donner les permissions au créateur
                     await newChan.AddOverwriteAsync(member, allow : Permissions.ManageChannels);
 
                     customVoiceChannelsID.Add(newChan.Id);
-                    await newChan.PlaceMemberAsync(await args.Guild.GetMemberAsync(args.User.Id));
+                    await newChan.PlaceMemberAsync(member);
                 }
             }
+
+            JSONHistory.Description.CustomVocalConfig customVocalConfig = default;
 
             // Si l'utilisateur quitte un salon
             if (before != null)
             {
                 if (IsCustomVoiceChannel(before.Id))
                 {
-                    if (before.Users.Count <= 0) // <=1 car il reste l'user qui quitte
+                    foreach (var permissionOverwrite in before.PermissionOverwrites)
+                    {
+                        if (permissionOverwrite.Type == OverwriteType.Member)
+                        {
+                            if (await permissionOverwrite.GetMemberAsync() == member)
+                            {
+                                JSONHistory.Description.CustomVocalConfig config = new JSONHistory.Description.CustomVocalConfig()
+                                {
+                                    name = before.Name,
+                                    bitrate = before.Bitrate.GetValueOrDefault(),
+                                    user_limit = before.UserLimit.GetValueOrDefault(),
+                                    videoQualityMode = before.QualityMode.GetValueOrDefault()
+                                };
+
+                                customVocalConfig = config;
+                            }
+                        }
+                    }
+
+                    if (before.Users.Count <= 0)
                     {
                         customVoiceChannelsID.Remove(before.Id);
                         await before.DeleteAsync();
                     }
                 }
             }
+
+            if (after != null)
+                if (after.Id == config.ID_CustomVoiceChannel)
+                    return;
+            if (before != null)
+                if (before.Id == config.ID_CustomVoiceChannel)
+                    return;
+
+            await AddDescriptionInHistory(args.User.Id, args.User.Username, DateTime.Now, default, customVocalConfig);
+            
 
             return;
         }
@@ -520,7 +582,7 @@ namespace LaGrueJaune
             return message;
         }
 
-        private static async Task AddDescriptionInHistory(ulong authorID, string authorName, DateTime publicationDate, Uri messageLink = default)
+        private static async Task AddDescriptionInHistory(ulong authorID, string authorName, DateTime publicationDate, Uri messageLink = default, JSONHistory.Description.CustomVocalConfig customVocal = default)
         {
             JSONHistory.Description newMessage = new JSONHistory.Description()
             {
@@ -530,6 +592,9 @@ namespace LaGrueJaune
 
             if (messageLink != default)
                 newMessage.link = messageLink;
+
+            if (customVocal != default)
+                newMessage.customVocalConfig = customVocal;
 
             await historyParser.AddHistory(authorID, newMessage);
 
