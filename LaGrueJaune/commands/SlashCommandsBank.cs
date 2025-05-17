@@ -68,9 +68,9 @@ namespace LaGrueJaune.commands
             await ctx.DeleteResponseAsync();
         }
 
-        [SlashCommand("SetUserKickable", "Set a user in purge list to be kickable or not.")]
+        [SlashCommand("PurgeUserKickable", "Set a user in purge list to be kickable or not.")]
         [SlashRequireUserPermissions(Permissions.Administrator)]
-        public async Task SetUserKickable(
+        public async Task PurgeUserKickable(
             InteractionContext ctx,
             [Option("ID", "The ID of the user in the purge list.")] long IDinList,
             [Option("Kickable", "If the user is kickable")] bool kickable)
@@ -127,26 +127,65 @@ namespace LaGrueJaune.commands
             await Program.CleanHistory();
             int nbOfKickedUsers = 0;
 
+            List<string> pseudosNotKick = new List<string>();
+
             foreach (var user in Program.userToPurge.History)
             {
                 var member = await Program.Guild.GetMemberAsync(user.Key);
 
                 if (user.Value.isKickable)
                 {
-                    Console.Write($"{user.Value.author} kicked for reason:\n{user.Value.kickReason}");
+                    try
+                    {
+                        // Envoyer un message privé à l'utilisateur
+                        var dmChannel = await member.CreateDmChannelAsync();
+                        await dmChannel.SendMessageAsync(user.Value.kickReason);
+                    }
+                    catch
+                    {
+                        Console.WriteLine($"DM error on {user.Value.author}");
+                    }
 
-                    // Envoyer un message privé à l'utilisateur
-                    var dmChannel = await member.CreateDmChannelAsync();
-                    await dmChannel.SendMessageAsync(user.Value.kickReason);
+                    try
+                    {
+                        //Kick l'utilisateur
+                        await member.RemoveAsync(user.Value.kickReason);
+                        nbOfKickedUsers++;
 
-                    await member.RemoveAsync(user.Value.kickReason);
-                    nbOfKickedUsers++;
+
+                        Console.WriteLine($"{user.Value.author} kicked for reason:\n{user.Value.kickReason}");
+                    }
+                    catch
+                    {
+                        pseudosNotKick.Add(user.Value.author);
+                        Console.WriteLine($"Kick error on {user.Value.author}");
+                    }
+                    
                 }
 
             }
 
+            try
+            {
+                if (pseudosNotKick.Count > 0)
+                {
+                    string msg = "```";
+                    foreach (var pseudo in pseudosNotKick)
+                    {
+                        msg += $"\n{pseudo}";
+                    }
+                    msg += "\n````";
+
+                    await Program.Guild.GetChannel(Program.config.ID_staffChannel).SendMessageAsync($"{msg} were not kick.");
+                }
+            }
+            catch
+            {
+                Console.WriteLine("Error while sending message to staff channel.");
+            }
+
             await Program.CleanHistory();
-            await ctx.Channel.SendMessageAsync($"Kicked {nbOfKickedUsers} innactives users in the list");
+            await ctx.Channel.SendMessageAsync($"{nbOfKickedUsers} utilisateurs innactifs ont été éjecté par la purge.");
 
             await ctx.DeleteResponseAsync();
         }
